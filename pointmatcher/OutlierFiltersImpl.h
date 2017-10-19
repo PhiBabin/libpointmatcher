@@ -1,4 +1,4 @@
-// kate: replace-tabs off; indent-width 4; indent-mode normal
+﻿// kate: replace-tabs off; indent-width 4; indent-mode normal
 // vim: ts=4:sw=4:noexpandtab
 /*
 
@@ -54,6 +54,7 @@ struct OutlierFiltersImpl
 	typedef typename PointMatcher<T>::OutlierWeights OutlierWeights;
 	typedef typename PointMatcher<T>::Matrix Matrix;	
 	typedef typename PointMatcher<T>::Vector Vector;
+	typedef typename Eigen::Array<T, Eigen::Dynamic, Eigen::Dynamic> Array;
 	
 	struct NullOutlierFilter: public OutlierFilter
 	{
@@ -236,6 +237,28 @@ struct OutlierFiltersImpl
 		const T squaredApproximation;
 		
 		RobustWelschOutlierFilter(const Parameters& params = Parameters());
+		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
+	};
+
+
+	struct RobustCauchyOutlierFilter: public OutlierFilter
+	{
+		inline static const std::string description()
+		{
+			return "Robust weight function part of the M-Estimator familly. Blabla feel this later \\cite{RobustCauchyFunctions}. More explicitly, the function is w = 1/[1 + (matched distance)^2/scale].";
+		}
+		inline static const ParametersDoc availableParameters()
+		{
+			return boost::assign::list_of<ParameterDoc>
+					( "scale", "Tuning parameter used to limit the influence of outliers.", "5.0", "0.0000001", "inf", &P::Comp<T>)
+					( "useMadForScale", "Instead of using the scale parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
+					;
+		}
+
+		T scale;
+		const bool use_mad;
+
+		RobustCauchyOutlierFilter(const Parameters& params = Parameters());
 		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
 	};
 

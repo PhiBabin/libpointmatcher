@@ -1,4 +1,4 @@
-// kate: replace-tabs off; indent-width 4; indent-mode normal
+﻿// kate: replace-tabs off; indent-width 4; indent-mode normal
 // vim: ts=4:sw=4:noexpandtab
 /*
 
@@ -391,4 +391,34 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutl
 template struct OutlierFiltersImpl<float>::RobustWelschOutlierFilter;
 template struct OutlierFiltersImpl<double>::RobustWelschOutlierFilter;
 
+// RobustCauchyOutlierFilter
+template<typename T>
+OutlierFiltersImpl<T>::RobustCauchyOutlierFilter::RobustCauchyOutlierFilter(const Parameters& params):
+	OutlierFilter("RobustCauchyOutlierFilter", RobustCauchyOutlierFilter::availableParameters(), params),
+	scale(Parametrizable::get<T>("scale")),
+	use_mad(Parametrizable::get<T>("useMadForScale"))
+{
+}
 
+template<typename T>
+typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustCauchyOutlierFilter::compute(
+		const DataPoints& filteredReading,
+		const DataPoints& filteredReference,
+		const Matches& input)
+{
+	if(use_mad)
+	{
+		// Calculate the median of absolute deviation(MAD), which is median(|x-median(x)|)
+		const T median = input.getDistsQuantile(0.5);
+		Array deviations = (input.dists.array() - median).abs().array();
+		// Find median of deviation
+		nth_element(deviations.data(), deviations.data() + deviations.size() / 2, deviations.data() + deviations.size());
+		scale = deviations.data()[deviations.size() / 2];
+	}
+	OutlierWeights w = (1 + input.dists.array()/scale).inverse();
+	return w;
+}
+
+
+template struct OutlierFiltersImpl<float>::RobustCauchyOutlierFilter;
+template struct OutlierFiltersImpl<double>::RobustCauchyOutlierFilter;

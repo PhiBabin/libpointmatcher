@@ -1,4 +1,4 @@
-// vim: ts=4:sw=4:noexpandtab
+﻿// vim: ts=4:sw=4:noexpandtab
 /*
 
 Copyright (c) 2010--2012,
@@ -100,7 +100,8 @@ PointMatcher<T>::PointMatcher()
 	ADD_TO_REGISTRAR(OutlierFilter, SurfaceNormalOutlierFilter, typename OutlierFiltersImpl<T>::SurfaceNormalOutlierFilter)
 	ADD_TO_REGISTRAR(OutlierFilter, GenericDescriptorOutlierFilter, typename OutlierFiltersImpl<T>::GenericDescriptorOutlierFilter)
 	ADD_TO_REGISTRAR(OutlierFilter, RobustWelschOutlierFilter, typename OutlierFiltersImpl<T>::RobustWelschOutlierFilter)
-	
+	ADD_TO_REGISTRAR(OutlierFilter, RobustCauchyOutlierFilter, typename OutlierFiltersImpl<T>::RobustCauchyOutlierFilter)
+
 	ADD_TO_REGISTRAR_NO_PARAM(ErrorMinimizer, IdentityErrorMinimizer, typename ErrorMinimizersImpl<T>::IdentityErrorMinimizer)
 	ADD_TO_REGISTRAR_NO_PARAM(ErrorMinimizer, PointToPointErrorMinimizer, typename ErrorMinimizersImpl<T>::PointToPointErrorMinimizer)
 	ADD_TO_REGISTRAR_NO_PARAM(ErrorMinimizer, PointToPointSimilarityErrorMinimizer, typename ErrorMinimizersImpl<T>::PointToPointSimilarityErrorMinimizer)
