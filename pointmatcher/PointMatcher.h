@@ -172,6 +172,8 @@ struct PointMatcher
 	typedef typename Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> IntMatrix;
 	//! A dense signed 64-bits matrix
 	typedef typename Eigen::Matrix<boost::int64_t, Eigen::Dynamic, Eigen::Dynamic> Int64Matrix;
+	//! A dense array over ScalarType
+	typedef typename Eigen::Array<T, Eigen::Dynamic, Eigen::Dynamic> Array;
 	
 	//! A matrix holding the parameters a transformation.
 	/**
@@ -378,6 +380,7 @@ struct PointMatcher
 		Ids ids; //!< identifiers of closest points
 		
 		T getDistsQuantile(const T quantile) const;
+		T getMedianAbsDeviation() const;
 	};
 
 	//! Weights of the associations between the points in Matches and the points in the reference.

@@ -377,7 +377,10 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutl
 	const DataPoints& filteredReference,
 	const Matches& input)
 {
-	OutlierWeights w = exp(- input.dists.array()/squaredScale);
+	// TODO find a way to activate and desactivate MAD like in cauchy
+	T scale = input.getMedianAbsDeviation();
+
+	OutlierWeights w = exp(- input.dists.array()/(scale*scale));
 
 	if(squaredApproximation != std::numeric_limits<T>::infinity())
 	{
@@ -408,12 +411,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustCauchyOutl
 {
 	if(use_mad)
 	{
-		// Calculate the median of absolute deviation(MAD), which is median(|x-median(x)|)
-		const T median = input.getDistsQuantile(0.5);
-		Array deviations = (input.dists.array() - median).abs().array();
-		// Find median of deviation
-		nth_element(deviations.data(), deviations.data() + deviations.size() / 2, deviations.data() + deviations.size());
-		scale = deviations.data()[deviations.size() / 2];
+		scale = input.getMedianAbsDeviation();
 	}
 	OutlierWeights w = (1 + input.dists.array()/scale).inverse();
 	return w;

@@ -54,7 +54,6 @@ struct OutlierFiltersImpl
 	typedef typename PointMatcher<T>::OutlierWeights OutlierWeights;
 	typedef typename PointMatcher<T>::Matrix Matrix;	
 	typedef typename PointMatcher<T>::Vector Vector;
-	typedef typename Eigen::Array<T, Eigen::Dynamic, Eigen::Dynamic> Array;
 	
 	struct NullOutlierFilter: public OutlierFilter
 	{

@@ -1,4 +1,4 @@
-// kate: replace-tabs off; indent-width 4; indent-mode normal
+﻿// kate: replace-tabs off; indent-width 4; indent-mode normal
 // vim: ts=4:sw=4:noexpandtab
 /*
 
@@ -84,6 +84,17 @@ T PointMatcher<T>::Matches::getDistsQuantile(const T quantile) const
 		return *max_element(values.begin(), values.end());
 	nth_element(values.begin(), values.begin() + (values.size() * quantile), values.end());
 	return values[values.size() * quantile];
+}
+
+//! alculate the Median of Absolute Deviation(MAD), which is median(|x-median(x)|)
+template<typename T>
+T PointMatcher<T>::Matches::getMedianAbsDeviation() const
+{
+	const T median = getDistsQuantile(0.5);
+	Array deviations = (dists.array() - median).abs().array();
+	// Find median of deviation
+	nth_element(deviations.data(), deviations.data() + deviations.size() / 2, deviations.data() + deviations.size());
+	return deviations.data()[deviations.size() / 2];
 }
 
 template struct PointMatcher<float>::Matches;
