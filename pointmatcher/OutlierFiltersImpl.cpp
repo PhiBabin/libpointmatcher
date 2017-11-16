@@ -378,7 +378,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutl
 	const Matches& input)
 {
 	// TODO find a way to activate and desactivate MAD like in cauchy
-	T scale = input.getMedianAbsDeviation();
+	T scale = input.getMedianAbsDeviation() / 0.6745;
 
 	OutlierWeights w = exp(- input.dists.array()/(scale*scale));
 
@@ -411,9 +411,9 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustCauchyOutl
 {
 	if(use_mad)
 	{
-		scale = input.getMedianAbsDeviation();
+		scale = input.getMedianAbsDeviation()/0.6745;
 	}
-	OutlierWeights w = (1 + input.dists.array()/scale).inverse();
+	OutlierWeights w = (1 + input.dists.array()/(scale*scale)).inverse();
 	return w;
 }
 
