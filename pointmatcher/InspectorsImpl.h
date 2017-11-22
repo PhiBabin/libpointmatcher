@@ -1,4 +1,4 @@
-// kate: replace-tabs off; indent-width 4; indent-mode normal
+﻿// kate: replace-tabs off; indent-width 4; indent-mode normal
 // vim: ts=4:sw=4:noexpandtab
 /*
 
@@ -110,7 +110,8 @@ struct InspectorsImpl
 		void dumpDataPoints(const DataPoints& data, std::ostream& stream);
 		void dumpMeshNodes(const DataPoints& data, std::ostream& stream);
 		void dumpDataLinks(const DataPoints& ref, const DataPoints& reading, 	const Matches& matches, const OutlierWeights& featureOutlierWeights, std::ostream& stream);
-		
+		void dumpScalar(const std::string name, const Matrix& data, const int readingPtCount, const int knn, std::ostream& stream);
+
 		std::ostream* streamIter;
 		const bool bDumpIterationInfo;
 		const bool bDumpDataLinks;

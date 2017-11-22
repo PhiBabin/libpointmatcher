@@ -1,4 +1,4 @@
-// kate: replace-tabs off; indent-width 4; indent-mode 
+﻿// kate: replace-tabs off; indent-width 4; indent-mode 
 // vim: ts=4:sw=4:noexpandtab
 /*
 
@@ -331,20 +331,33 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataLinks(
 	}
 
 	stream << "CELL_DATA " << readingPtCount*knn << "\n";
-	stream << "SCALARS outlier float 1\n";
-	stream << "LOOKUP_TABLE default\n";
-	//stream << "LOOKUP_TABLE alphaOutlier\n";
-	for(int k = 0; k < knn; k++) // knn
-	{
-		for (int i = 0; i < readingPtCount; ++i) //nb pts
-		{
-			stream << featureOutlierWeights(k, i) << "\n";
-		}
-	}
+	dumpScalar("outlier", featureOutlierWeights, readingPtCount, knn, stream);
+	dumpScalar("distance", matches.dists, readingPtCount, knn, stream);
 
 	//stream << "LOOKUP_TABLE alphaOutlier 2\n";
 	//stream << "1 0 0 0.5\n";
 	//stream << "0 1 0 1\n";
+
+}
+
+template<typename T>
+void InspectorsImpl<T>::AbstractVTKInspector::dumpScalar(
+	const std::string name,
+	const Matrix& data,
+	const int readingPtCount,
+	const int knn,
+	std::ostream& stream)
+{
+
+	stream << "SCALARS " << name << " float 1\n";
+	stream << "LOOKUP_TABLE default\n";
+	for(int k = 0; k < knn; k++) // knn
+	{
+		for (int i = 0; i < readingPtCount; ++i) //nb pts
+		{
+			stream << data(k, i) << "\n";
+		}
+	}
 
 }
 

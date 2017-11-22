@@ -86,7 +86,7 @@ T PointMatcher<T>::Matches::getDistsQuantile(const T quantile) const
 	return values[values.size() * quantile];
 }
 
-//! alculate the Median of Absolute Deviation(MAD), which is median(|x-median(x)|)
+//! Calculate the Median of Absolute Deviation(MAD), which is median(|x-median(x)|)
 template<typename T>
 T PointMatcher<T>::Matches::getMedianAbsDeviation() const
 {
