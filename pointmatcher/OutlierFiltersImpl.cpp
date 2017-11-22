@@ -380,7 +380,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutl
 	// TODO find a way to activate and desactivate MAD like in cauchy
 	T scale = input.getMedianAbsDeviation() / 0.6745;
 
-	OutlierWeights w = exp(- input.dists.array()/(scale*scale));
+	OutlierWeights w = (-input.dists.array()/(scale*scale)).exp();
 
 	if(squaredApproximation != std::numeric_limits<T>::infinity())
 	{
