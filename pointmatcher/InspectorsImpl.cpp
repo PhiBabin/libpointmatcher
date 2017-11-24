@@ -48,6 +48,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace PointMatcherSupport;
 
+
+// PerformanceInspector
 template<typename T>
 InspectorsImpl<T>::PerformanceInspector::PerformanceInspector(const std::string& className, const ParametersDoc paramsDoc, const Parameters& params):
 	Inspector(className,paramsDoc,params),
@@ -109,6 +111,7 @@ void InspectorsImpl<T>::PerformanceInspector::dumpStatsHeader(std::ostream& stre
 template struct InspectorsImpl<float>::PerformanceInspector;
 template struct InspectorsImpl<double>::PerformanceInspector;
 
+//AbstractVTKInspector
 /*
 	// This code creates a header according to information from the datapoints
 	std::ofstream ofs(fileName.c_str());

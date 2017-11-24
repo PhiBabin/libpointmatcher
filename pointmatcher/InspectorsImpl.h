@@ -64,7 +64,8 @@ struct InspectorsImpl
 			return "Does nothing.";
 		}
 	};
-	
+
+
 	struct PerformanceInspector: public Inspector
 	{
 		inline static const std::string description()

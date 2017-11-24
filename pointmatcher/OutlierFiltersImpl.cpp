@@ -167,6 +167,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::VarTrimmedDistOu
 	const Matches& input)
 {
 	const T tunedRatio = optimizeInlierRatio(input);
+	tunedRatios.push_back(tunedRatio);
 	LOG_INFO_STREAM("Optimized ratio: " << tunedRatio);
 
 	const T limit = input.getDistsQuantile(tunedRatio);

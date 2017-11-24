@@ -1,4 +1,4 @@
-// kate: replace-tabs off; indent-width 4; indent-mode normal
+﻿// kate: replace-tabs off; indent-width 4; indent-mode normal
 // vim: ts=4:sw=4:noexpandtab
 /*
 
@@ -35,6 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef __POINTMATCHER_PRIVATE_H
 #define __POINTMATCHER_PRIVATE_H
+
+
+#include "InMemoryInspectorImpl.h"
 
 namespace PointMatcherSupport
 {

@@ -160,6 +160,7 @@ struct OutlierFiltersImpl
 		const T minRatio;
 		const T maxRatio;
 		const T lambda;
+		std::vector<T> tunedRatios;
 		
 		VarTrimmedDistOutlierFilter(const Parameters& params = Parameters());
 		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);

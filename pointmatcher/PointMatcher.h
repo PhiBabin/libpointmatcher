@@ -243,7 +243,7 @@ struct PointMatcher
 				}
 
 				return stream;
-			};
+			}
 		};
 		
 		//! An exception thrown when one tries to access features or descriptors unexisting or of wrong dimensions
@@ -609,7 +609,7 @@ struct PointMatcher
 	DEF_REGISTRAR(TransformationChecker)
 
 	// ---------------------------------
-	
+
 	//! An inspector allows to log data at the different steps, for analysis.
 	struct Inspector: public Parametrizable
 	{
