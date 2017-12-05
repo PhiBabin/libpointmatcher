@@ -335,7 +335,7 @@ void InspectorsImpl<T>::AbstractVTKInspector::dumpDataLinks(
 
 	stream << "CELL_DATA " << readingPtCount*knn << "\n";
 	dumpScalar("outlier", featureOutlierWeights, readingPtCount, knn, stream);
-	dumpScalar("distance", matches.dists, readingPtCount, knn, stream);
+	dumpScalar("distance_squared", matches.dists, readingPtCount, knn, stream);
 
 	//stream << "LOOKUP_TABLE alphaOutlier 2\n";
 	//stream << "1 0 0 0.5\n";
