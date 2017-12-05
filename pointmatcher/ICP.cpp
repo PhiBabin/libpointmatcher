@@ -1,4 +1,4 @@
-// kate: replace-tabs off; indent-width 4; indent-mode normal
+﻿// kate: replace-tabs off; indent-width 4; indent-mode normal
 // vim: ts=4:sw=4:noexpandtab
 /*
 
@@ -377,6 +377,9 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 		
 		assert(outlierWeights.rows() == matches.ids.rows());
 		assert(outlierWeights.cols() == matches.ids.cols());
+
+		// Fetch stats from outlier filter
+		this->outlierFilters.addStat(this->inspector);
 		
 		//cout << "outlierWeights: " << outlierWeights << "\n";
 	

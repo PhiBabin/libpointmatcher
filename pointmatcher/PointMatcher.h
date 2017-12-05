@@ -479,37 +479,7 @@ struct PointMatcher
 	
 	DEF_REGISTRAR(Matcher)
 	
-	// ---------------------------------
-	
-	//! An outlier filter removes or weights links between points in reading and their matched points in reference, depending on some criteria.
-	/**
-		Criteria can be a fixed maximum authorized distance, a factor of the median distance, etc. 
-		Points with zero weights are ignored in the subsequent minimization step.
-	*/
-	struct OutlierFilter: public Parametrizable
-	{
-		OutlierFilter();
-		OutlierFilter(const std::string& className, const ParametersDoc paramsDoc, const Parameters& params);
-		
-		virtual ~OutlierFilter();
-		
-		//! Detect outliers using features
-		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input) = 0;
-	};
-	
-	
-	//! A chain of OutlierFilter
-	struct OutlierFilters: public PointMatcherSupport::SharedPtrVector<OutlierFilter>
-	{
-		
-		OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
-		
-	};
-	
-	typedef typename OutlierFilters::const_iterator OutlierFiltersConstIt; //!< alias
-	typedef typename OutlierFilters::iterator OutlierFiltersIt; //!< alias
-	
-	DEF_REGISTRAR(OutlierFilter)
+
 
 	// ---------------------------------
 	
@@ -630,8 +600,42 @@ struct PointMatcher
 		virtual void dumpIteration(const size_t iterationNumber, const TransformationParameters& parameters, const DataPoints& filteredReference, const DataPoints& reading, const Matches& matches, const OutlierWeights& outlierWeights, const TransformationCheckers& transformationCheckers);
 		virtual void finish(const size_t iterationCount);
 	};
+
+	typedef boost::shared_ptr<Inspector> InspectorPtr;
 	
 	DEF_REGISTRAR(Inspector) 
+	// ---------------------------------
+
+	//! An outlier filter removes or weights links between points in reading and their matched points in reference, depending on some criteria.
+	/**
+		Criteria can be a fixed maximum authorized distance, a factor of the median distance, etc.
+		Points with zero weights are ignored in the subsequent minimization step.
+	*/
+	struct OutlierFilter: public Parametrizable
+	{
+		OutlierFilter();
+		OutlierFilter(const std::string& className, const ParametersDoc paramsDoc, const Parameters& params);
+
+		virtual ~OutlierFilter();
+
+		//! Detect outliers using features
+		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input) = 0;
+		virtual void addStat(InspectorPtr& inspector) const;
+	};
+
+
+	//! A chain of OutlierFilter
+	struct OutlierFilters: public PointMatcherSupport::SharedPtrVector<OutlierFilter>
+	{
+
+		OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
+		void addStat(InspectorPtr& inspector) const;
+	};
+
+	typedef typename OutlierFilters::const_iterator OutlierFiltersConstIt; //!< alias
+	typedef typename OutlierFilters::iterator OutlierFiltersIt; //!< alias
+
+	DEF_REGISTRAR(OutlierFilter)
 	
 	// ---------------------------------
 	

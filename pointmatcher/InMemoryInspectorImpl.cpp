@@ -51,7 +51,10 @@ using namespace PointMatcherSupport;
 template<typename T>
 void InMemoryInspector<T>::addStat(const std::string& name, double data)
 {
-		stats.insert(std::make_pair(name, data));
+	if (stats.find(name) == stats.end()) {
+		stats.insert(std::make_pair(name, vector<double>()));
+	}
+	stats[name].push_back(data);
 }
 
 template<typename T>
@@ -64,13 +67,13 @@ void InMemoryInspector<T>::dumpIteration(
 				const OutlierWeights& outlierWeights,
 				const TransformationCheckers& transCheck)
 {
-		IterationData data = {
-			tfParameters,
-			filteredReference,
-			reading,
-			matches,
-			outlierWeights,
-			transCheck
+	IterationData data = {
+		tfParameters,
+		filteredReference,
+		reading,
+		matches,
+		outlierWeights,
+		transCheck
 	};
 	iterationsStats.push_back(data);
 }

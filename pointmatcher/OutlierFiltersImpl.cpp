@@ -216,6 +216,13 @@ T OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::optimizeInlierRatio(const 
 
 }
 
+template<typename T>
+void OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::addStat(InspectorPtr& inspector) const
+{
+	inspector->addStat("optimized_ratio", tunedRatios.back());
+}
+
+
 template struct OutlierFiltersImpl<float>::VarTrimmedDistOutlierFilter;
 template struct OutlierFiltersImpl<double>::VarTrimmedDistOutlierFilter;
 
@@ -367,7 +374,7 @@ template struct OutlierFiltersImpl<double>::GenericDescriptorOutlierFilter;
 template<typename T>
 OutlierFiltersImpl<T>::RobustWelschOutlierFilter::RobustWelschOutlierFilter(const Parameters& params):
 	OutlierFilter("RobustWelschOutlierFilter", RobustWelschOutlierFilter::availableParameters(), params),
-	squaredScale(pow(Parametrizable::get<T>("scale"),2)), //Note: we use squared distance later on
+	scale(Parametrizable::get<T>("scale")), //Note: we use squared distance later on
 	squaredApproximation(pow(Parametrizable::get<T>("approximation"),2))
 {
 }
@@ -379,7 +386,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutl
 	const Matches& input)
 {
 	// TODO find a way to activate and desactivate MAD like in cauchy
-	T scale = input.getMedianAbsDeviation() / 0.6745;
+	scale = input.getMedianAbsDeviation() / 0.6745;
 
 	OutlierWeights w = (-input.dists.array()/(scale*scale)).exp();
 
@@ -390,6 +397,12 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutl
 	}
 
 	return w;
+}
+
+template<typename T>
+void OutlierFiltersImpl<T>::RobustWelschOutlierFilter::addStat(InspectorPtr& inspector) const
+{
+	inspector->addStat("scale", scale);
 }
 
 template struct OutlierFiltersImpl<float>::RobustWelschOutlierFilter;
@@ -417,6 +430,14 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustCauchyOutl
 	OutlierWeights w = (1 + input.dists.array()/(scale*scale)).inverse();
 	return w;
 }
+
+
+template<typename T>
+void OutlierFiltersImpl<T>::RobustCauchyOutlierFilter::addStat(InspectorPtr& inspector)  const
+{
+	inspector->addStat("scale", scale);
+}
+
 
 
 template struct OutlierFiltersImpl<float>::RobustCauchyOutlierFilter;

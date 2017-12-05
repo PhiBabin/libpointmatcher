@@ -51,6 +51,7 @@ struct OutlierFiltersImpl
 	typedef typename PointMatcher<T>::DataPoints DataPoints;
 	typedef typename PointMatcher<T>::Matches Matches;
 	typedef typename PointMatcher<T>::OutlierFilter OutlierFilter;
+	typedef typename PointMatcher<T>::InspectorPtr InspectorPtr;
 	typedef typename PointMatcher<T>::OutlierWeights OutlierWeights;
 	typedef typename PointMatcher<T>::Matrix Matrix;	
 	typedef typename PointMatcher<T>::Vector Vector;
@@ -164,7 +165,8 @@ struct OutlierFiltersImpl
 		
 		VarTrimmedDistOutlierFilter(const Parameters& params = Parameters());
 		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
-		
+		virtual void addStat(InspectorPtr& inspector) const;
+
 	private:
 		// return the optimized ratio
 		T optimizeInlierRatio(const Matches& matches);
@@ -233,11 +235,12 @@ struct OutlierFiltersImpl
 				;
 		}
 		
-		const T squaredScale;
+		T scale;
 		const T squaredApproximation;
 		
 		RobustWelschOutlierFilter(const Parameters& params = Parameters());
 		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
+		virtual void addStat(InspectorPtr& inspector) const;
 	};
 
 
@@ -260,6 +263,8 @@ struct OutlierFiltersImpl
 
 		RobustCauchyOutlierFilter(const Parameters& params = Parameters());
 		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
+		virtual void addStat(InspectorPtr& inspector) const;
+
 	};
 
 }; // OutlierFiltersImpl

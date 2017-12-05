@@ -84,7 +84,7 @@ struct InMemoryInspector: public PointMatcher<T>::Inspector
 	};
 
 	std::vector<IterationData> iterationsStats;
-	std::map<std::string, double> stats;
+	std::map<std::string, std::vector<double>> stats;
 
 public:
 

@@ -1,4 +1,4 @@
-// kate: replace-tabs off; indent-width 4; indent-mode normal
+﻿// kate: replace-tabs off; indent-width 4; indent-mode normal
 // vim: ts=4:sw=4:noexpandtab
 /*
 
@@ -101,6 +101,21 @@ typename PointMatcher<T>::OutlierWeights PointMatcher<T>::OutlierFilters::comput
 		return w;
 	}
 }
+
+//! Apply stat logging to the chain
+template<typename T>
+void PointMatcher<T>::OutlierFilters::addStat(InspectorPtr& inspector) const
+{
+	for (OutlierFiltersConstIt it = this->begin(); it != this->end(); ++it)
+	{
+		(*it)->addStat(inspector);
+	}
+}
+
+//! Default behavior for logging stat is to log nothing
+template<typename T>
+void PointMatcher<T>::OutlierFilter::addStat(InspectorPtr& inspector) const
+{}
 
 
 
