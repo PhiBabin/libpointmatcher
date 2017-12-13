@@ -219,7 +219,7 @@ T OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::optimizeInlierRatio(const 
 template<typename T>
 void OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::addStat(InspectorPtr& inspector) const
 {
-	inspector->addStat("optimized_ratio", tunedRatios.back());
+	inspector->addStat("OptimizedRatio", tunedRatios.back());
 }
 
 
@@ -402,7 +402,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutl
 template<typename T>
 void OutlierFiltersImpl<T>::RobustWelschOutlierFilter::addStat(InspectorPtr& inspector) const
 {
-	inspector->addStat("scale", scale);
+	inspector->addStat("Scale", scale);
 }
 
 template struct OutlierFiltersImpl<float>::RobustWelschOutlierFilter;
@@ -435,7 +435,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustCauchyOutl
 template<typename T>
 void OutlierFiltersImpl<T>::RobustCauchyOutlierFilter::addStat(InspectorPtr& inspector)  const
 {
-	inspector->addStat("scale", scale);
+	inspector->addStat("Scale", scale);
 }
 
 
