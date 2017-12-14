@@ -76,8 +76,8 @@ struct InMemoryInspector: public PointMatcher<T>::Inspector
 
 	struct IterationData {
 		TransformationParameters tfParameters;
-		DataPoints filteredReference;
-		DataPoints reading;
+//		DataPoints filteredReference;
+//		DataPoints reading;
 		Matches matches;
 		OutlierWeights outlierWeights;
 		TransformationCheckers transCheck;
