@@ -71,9 +71,9 @@ void InMemoryInspector<T>::dumpIteration(
 		tfParameters,
         //filteredReference,
         //reading,
-        matches,
-		outlierWeights,
-		transCheck
+        //matches,
+        //outlierWeights,
+        //transCheck
 	};
     iterationsStats.push_back(data);
 }
