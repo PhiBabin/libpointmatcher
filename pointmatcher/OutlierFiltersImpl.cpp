@@ -370,25 +370,52 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::GenericDescripto
 template struct OutlierFiltersImpl<float>::GenericDescriptorOutlierFilter;
 template struct OutlierFiltersImpl<double>::GenericDescriptorOutlierFilter;
 
-// RobustWelschOutlierFilter
+// RobustOutlierFilter
 template<typename T>
-OutlierFiltersImpl<T>::RobustWelschOutlierFilter::RobustWelschOutlierFilter(const Parameters& params):
-	OutlierFilter("RobustWelschOutlierFilter", RobustWelschOutlierFilter::availableParameters(), params),
+OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const Parameters& params):
+    OutlierFilter("RobustOutlierFilter", RobustOutlierFilter::availableParameters(), params),
+    robustFct(Parametrizable::get<T>("robustFct")),
 	scale(Parametrizable::get<T>("scale")), //Note: we use squared distance later on
-	squaredApproximation(pow(Parametrizable::get<T>("approximation"),2))
+    squaredApproximation(pow(Parametrizable::get<T>("approximation"),2)),
+    useMad(Parametrizable::get<T>("useMadForScale"))
 {
 }
 
 template<typename T>
-typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutlierFilter::compute(
+typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFilter::compute(
 	const DataPoints& filteredReading,
 	const DataPoints& filteredReference,
 	const Matches& input)
 {
-	// TODO find a way to activate and desactivate MAD like in cauchy
-	scale = input.getMedianAbsDeviation() / 0.6745;
+    if (useMad) {
+        scale = input.getMedianAbsDeviation() / 0.6745;
+    }
+    T invScaleSquared = 1.0/(scale*scale);
 
-	OutlierWeights w = (-input.dists.array()/(scale*scale)).exp();
+    // input.dists.array() is an array of the squared distance
+    OutlierWeights w, aboveThres, bellowThres;
+    switch (robustFct) {
+        case RobustFct::Cauchy:
+            w = (1 + input.dists.array()*invScaleSquared).inverse();
+            break;
+        case RobustFct::Welsch:
+            w = (-input.dists.array()*invScaleSquared).exp();
+            break;
+        case RobustFct::SwitchableConstraint:
+            aboveThres = 4.0 * scale*scale*((scale + input.dists.array()).square()).inverse();
+            w = (input.dists.array() >= scale*scale).select(aboveThres, 1.0);
+            break;
+        case RobustFct::GM:
+            w = scale*scale*((scale + input.dists.array()).square()).inverse();
+            break;
+        case RobustFct::Tukey:
+            bellowThres = (1 - input.dists.array()*invScaleSquared).square();
+            w = (input.dists.array() >= scale*scale).select(0.0, bellowThres);
+            break;
+        default:
+            break;
+    }
+
 
 	if(squaredApproximation != std::numeric_limits<T>::infinity())
 	{
@@ -400,45 +427,11 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustWelschOutl
 }
 
 template<typename T>
-void OutlierFiltersImpl<T>::RobustWelschOutlierFilter::addStat(InspectorPtr& inspector) const
+void OutlierFiltersImpl<T>::RobustOutlierFilter::addStat(InspectorPtr& inspector) const
 {
 	inspector->addStat("Scale", scale);
 }
 
-template struct OutlierFiltersImpl<float>::RobustWelschOutlierFilter;
-template struct OutlierFiltersImpl<double>::RobustWelschOutlierFilter;
+template struct OutlierFiltersImpl<float>::RobustOutlierFilter;
+template struct OutlierFiltersImpl<double>::RobustOutlierFilter;
 
-// RobustCauchyOutlierFilter
-template<typename T>
-OutlierFiltersImpl<T>::RobustCauchyOutlierFilter::RobustCauchyOutlierFilter(const Parameters& params):
-	OutlierFilter("RobustCauchyOutlierFilter", RobustCauchyOutlierFilter::availableParameters(), params),
-	scale(Parametrizable::get<T>("scale")),
-	use_mad(Parametrizable::get<T>("useMadForScale"))
-{
-}
-
-template<typename T>
-typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustCauchyOutlierFilter::compute(
-		const DataPoints& filteredReading,
-		const DataPoints& filteredReference,
-		const Matches& input)
-{
-	if(use_mad)
-	{
-		scale = input.getMedianAbsDeviation()/0.6745;
-	}
-	OutlierWeights w = (1 + input.dists.array()/(scale*scale)).inverse();
-	return w;
-}
-
-
-template<typename T>
-void OutlierFiltersImpl<T>::RobustCauchyOutlierFilter::addStat(InspectorPtr& inspector)  const
-{
-	inspector->addStat("Scale", scale);
-}
-
-
-
-template struct OutlierFiltersImpl<float>::RobustCauchyOutlierFilter;
-template struct OutlierFiltersImpl<double>::RobustCauchyOutlierFilter;
