@@ -395,22 +395,26 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
     // input.dists.array() is an array of the squared distance
     OutlierWeights w, aboveThres, bellowThres;
     switch (robustFct) {
-        case RobustFct::Cauchy:
+        case RobustFct::Cauchy: // 1/(1 + e²/s²)
             w = (1 + input.dists.array()*invScaleSquared).inverse();
             break;
-        case RobustFct::Welsch:
+        case RobustFct::Welsch: // e^(-e²/s²)
             w = (-input.dists.array()*invScaleSquared).exp();
             break;
-        case RobustFct::SwitchableConstraint:
+        case RobustFct::SwitchableConstraint: // if e² > s² then 4 * s²/(s + e²)²
             aboveThres = 4.0 * scale*scale*((scale + input.dists.array()).square()).inverse();
             w = (input.dists.array() >= scale*scale).select(aboveThres, 1.0);
             break;
-        case RobustFct::GM:
+        case RobustFct::GM:    // s²/(s + e²)²
             w = scale*scale*((scale + input.dists.array()).square()).inverse();
             break;
-        case RobustFct::Tukey:
+        case RobustFct::Tukey: // if e² < s then (1-e²/s²)²
             bellowThres = (1 - input.dists.array()*invScaleSquared).square();
             w = (input.dists.array() >= scale*scale).select(0.0, bellowThres);
+            break;
+        case RobustFct::Huber: // if |e| >= s then s/|e| = s/sqrt(e²)
+            aboveThres = scale * input.dists.array().sqrt().inverse();
+            w = (input.dists.array() >= scale*scale).select(aboveThres, 1.0);
             break;
         default:
             break;
