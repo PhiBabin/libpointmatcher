@@ -374,11 +374,21 @@ template struct OutlierFiltersImpl<double>::GenericDescriptorOutlierFilter;
 template<typename T>
 OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const Parameters& params):
     OutlierFilter("RobustOutlierFilter", RobustOutlierFilter::availableParameters(), params),
-    robustFct(Parametrizable::get<T>("robustFct")),
-	scale(Parametrizable::get<T>("scale")), //Note: we use squared distance later on
-    squaredApproximation(pow(Parametrizable::get<T>("approximation"),2)),
-    useMad(Parametrizable::get<T>("useMadForScale"))
+    robustFctName(Parametrizable::get<string>("robustFct")),
+    scale(Parametrizable::get<T>("scale")),
+    squaredApproximation(pow(Parametrizable::get<T>("approximation"), 2)),
+    useMad(Parametrizable::get<bool>("useMadForScale")),
+    robustFctId(-1)
 {
+    for (size_t i = 0; i < ROBUST_FCT_TABLE_LEN; ++i) {
+        if (robustFctName == ROBUST_FCT_TABLE[i].name) {
+            robustFctId = ROBUST_FCT_TABLE[i].id;
+            break;
+        }
+    }
+    if (robustFctId == -1) {
+        throw runtime_error("Invalid robust function name.");
+    }
 }
 
 template<typename T>
@@ -394,25 +404,25 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 
     // input.dists.array() is an array of the squared distance
     OutlierWeights w, aboveThres, bellowThres;
-    switch (robustFct) {
-        case RobustFct::Cauchy: // 1/(1 + e²/s²)
+    switch (robustFctId) {
+        case RobustFctId::Cauchy: // 1/(1 + e²/s²)
             w = (1 + input.dists.array()*invScaleSquared).inverse();
             break;
-        case RobustFct::Welsch: // e^(-e²/s²)
+        case RobustFctId::Welsch: // e^(-e²/s²)
             w = (-input.dists.array()*invScaleSquared).exp();
             break;
-        case RobustFct::SwitchableConstraint: // if e² > s² then 4 * s²/(s + e²)²
+        case RobustFctId::SwitchableConstraint: // if e² > s² then 4 * s²/(s + e²)²
             aboveThres = 4.0 * scale*scale*((scale + input.dists.array()).square()).inverse();
             w = (input.dists.array() >= scale*scale).select(aboveThres, 1.0);
             break;
-        case RobustFct::GM:    // s²/(s + e²)²
+        case RobustFctId::GM:    // s²/(s + e²)²
             w = scale*scale*((scale + input.dists.array()).square()).inverse();
             break;
-        case RobustFct::Tukey: // if e² < s then (1-e²/s²)²
+        case RobustFctId::Tukey: // if e² < s then (1-e²/s²)²
             bellowThres = (1 - input.dists.array()*invScaleSquared).square();
             w = (input.dists.array() >= scale*scale).select(0.0, bellowThres);
             break;
-        case RobustFct::Huber: // if |e| >= s then s/|e| = s/sqrt(e²)
+        case RobustFctId::Huber: // if |e| >= s then s/|e| = s/sqrt(e²)
             aboveThres = scale * input.dists.array().sqrt().inverse();
             w = (input.dists.array() >= scale*scale).select(aboveThres, 1.0);
             break;
