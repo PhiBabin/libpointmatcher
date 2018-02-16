@@ -398,33 +398,34 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 	const Matches& input)
 {
     if (useMad) {
+        // 0.6745 is give the best constant for a gaussian distribution
         scale = input.getMedianAbsDeviation() / 0.6745;
     }
-    T invScaleSquared = 1.0/(scale*scale);
+    const T s2 = scale * scale;
 
-    // input.dists.array() is an array of the squared distance
+    // input.dists.array() is an array of the squared distance (e²)
     OutlierWeights w, aboveThres, bellowThres;
     switch (robustFctId) {
         case RobustFctId::Cauchy: // 1/(1 + e²/s²)
-            w = (1 + input.dists.array()*invScaleSquared).inverse();
+            w = (1 + input.dists.array() / s2).inverse();
             break;
-        case RobustFctId::Welsch: // e^(-e²/s²)
-            w = (-input.dists.array()*invScaleSquared).exp();
+        case RobustFctId::Welsch: // exp(-e²/s²)
+            w = (-input.dists.array() / s2).exp();
             break;
         case RobustFctId::SwitchableConstraint: // if e² > s² then 4 * s²/(s + e²)²
-            aboveThres = 4.0 * scale*scale*((scale + input.dists.array()).square()).inverse();
-            w = (input.dists.array() >= scale*scale).select(aboveThres, 1.0);
+            aboveThres = 4.0 * s2 * ((scale + input.dists.array()).square()).inverse();
+            w = (input.dists.array() >= s2).select(aboveThres, 1.0);
             break;
         case RobustFctId::GM:    // s²/(s + e²)²
             w = scale*scale*((scale + input.dists.array()).square()).inverse();
             break;
         case RobustFctId::Tukey: // if e² < s then (1-e²/s²)²
-            bellowThres = (1 - input.dists.array()*invScaleSquared).square();
-            w = (input.dists.array() >= scale*scale).select(0.0, bellowThres);
+            bellowThres = (1 - input.dists.array() / s2).square();
+            w = (input.dists.array() >= s2).select(0.0, bellowThres);
             break;
         case RobustFctId::Huber: // if |e| >= s then s/|e| = s/sqrt(e²)
             aboveThres = scale * input.dists.array().sqrt().inverse();
-            w = (input.dists.array() >= scale*scale).select(aboveThres, 1.0);
+            w = (input.dists.array() >= s2).select(aboveThres, 1.0);
             break;
         default:
             break;
