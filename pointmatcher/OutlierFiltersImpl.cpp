@@ -424,8 +424,11 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
             w = (input.dists.array() >= s2).select(0.0, bellowThres);
             break;
         case RobustFctId::Huber: // if |e| >= s then s/|e| = s/sqrt(e²)
-            aboveThres = scale * input.dists.array().sqrt().inverse();
+            aboveThres = scale * (input.dists.array().sqrt().inverse());
             w = (input.dists.array() >= s2).select(aboveThres, 1.0);
+            break;
+        case RobustFctId::L1: // 1/|e| = 1/sqrt(e²)
+            w = (input.dists.array().sqrt().inverse());
             break;
         default:
             break;
