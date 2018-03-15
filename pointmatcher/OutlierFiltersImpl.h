@@ -221,51 +221,53 @@ struct OutlierFiltersImpl
 		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
 	};
 
-	struct RobustWelschOutlierFilter: public OutlierFilter
-	{
+    struct RobustOutlierFilter: public OutlierFilter
+    {
+        enum RobustFctId {
+            Cauchy=0,
+            Welsch=1,
+            SwitchableConstraint=2,
+            GM=3,
+            Tukey=4,
+            Huber=5,
+            L1=6
+        };
+        struct RobustFct { std::string name; RobustFctId id;};
+        const RobustFct ROBUST_FCT_TABLE[7] = {{.name="cauchy", .id=Cauchy},
+                                               {.name="welsch", .id=Welsch},
+                                               {.name="sc",     .id=SwitchableConstraint},
+                                               {.name="gm",     .id=GM},
+                                               {.name="tukey",  .id=Tukey},
+                                               {.name="huber",  .id=Huber},
+                                               {.name="L1",     .id=L1}};
+        const size_t ROBUST_FCT_TABLE_LEN = sizeof(ROBUST_FCT_TABLE) / sizeof(RobustFct);
+
 		inline static const std::string description()
 		{
-			return "Robust weight function part of the M-Estimator familly. The Welsch weight uses an exponential decay reducing the influence of matched point farther away \\cite{RobustWeightFunctions}. More explicitly, the function is w = exp[- (matched distance)^2/scale^2].";
+            return "Robust weight function part of the M-Estimator familly. 7 robust functions to choose from (Cauchy, Welsch, Switchable Constraint, Geman-McClure, Tukey, Huber and L1). The Welsch weight uses an exponential decay reducing the influence of matched point farther away \\cite{RobustWeightFunctions}. More explicitly, the function is w = exp[- (matched distance)^2/scale^2].";
 		}
 		inline static const ParametersDoc availableParameters()
 		{
-			return boost::assign::list_of<ParameterDoc>
-				( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "5.0", "0.0000001", "inf", &P::Comp<T>)
+            return boost::assign::list_of<ParameterDoc>
+                ( "robustFct", "Type of robust function used. Available fct: 'cauchy', 'welsch', 'sc'(aka Switchable-Constraint), 'gm' (aka Geman-McClure), 'tukey', 'huber' and 'L1'. (Default: cauchy)", "cauchy")
+                ( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
 				( "approximation", "If the matched distance is larger than this threshold, its weight will be forced to zero. This can save computation as zero values are not minimized. If set to inf (default value), no approximation is done. The unit of this parameter is the same as the distance used, typically meters.", "inf", "0.0", "inf", &P::Comp<T>)
-				;
+                ( "useMadForScale", "Instead of using the scale parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
+                ;
 		}
-		
+
+        int robustFctId;
+        const std::string robustFctName;
 		T scale;
 		const T squaredApproximation;
+        const bool useMad;
 		
-		RobustWelschOutlierFilter(const Parameters& params = Parameters());
+        RobustOutlierFilter(const Parameters& params = Parameters());
 		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
 		virtual void addStat(InspectorPtr& inspector) const;
 	};
 
 
-	struct RobustCauchyOutlierFilter: public OutlierFilter
-	{
-		inline static const std::string description()
-		{
-			return "Robust weight function part of the M-Estimator familly. Blabla feel this later \\cite{RobustCauchyFunctions}. More explicitly, the function is w = 1/[1 + (matched distance)^2/scale].";
-		}
-		inline static const ParametersDoc availableParameters()
-		{
-			return boost::assign::list_of<ParameterDoc>
-					( "scale", "Tuning parameter used to limit the influence of outliers.", "5.0", "0.0000001", "inf", &P::Comp<T>)
-					( "useMadForScale", "Instead of using the scale parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
-					;
-		}
-
-		T scale;
-		const bool use_mad;
-
-		RobustCauchyOutlierFilter(const Parameters& params = Parameters());
-		virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
-		virtual void addStat(InspectorPtr& inspector) const;
-
-	};
 
 }; // OutlierFiltersImpl
 

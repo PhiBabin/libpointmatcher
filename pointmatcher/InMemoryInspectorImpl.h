@@ -50,7 +50,7 @@ namespace PointMatcherSupport
  *
  * The user must have access to the implementation of InMemoryInspector otherwise it can not
  * read it's member function and get the stats. In libpointmatcher the implementation of other
- * module's are not public to the user.
+ * modules are not public to the user.
  */
 template<typename T>
 struct InMemoryInspector: public PointMatcher<T>::Inspector
@@ -76,11 +76,11 @@ struct InMemoryInspector: public PointMatcher<T>::Inspector
 
 	struct IterationData {
 		TransformationParameters tfParameters;
-		DataPoints filteredReference;
-		DataPoints reading;
-		Matches matches;
-		OutlierWeights outlierWeights;
-		TransformationCheckers transCheck;
+//		DataPoints filteredReference;
+//		DataPoints reading;
+//		Matches matches;
+//		OutlierWeights outlierWeights;
+//		TransformationCheckers transCheck;
 	};
 
 	std::vector<IterationData> iterationsStats;
