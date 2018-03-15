@@ -387,7 +387,7 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 		//-----------------------------
 		// Dump
 		this->inspector->dumpIteration(
-			iterationCount, T_iter, reference, stepReading, matches, outlierWeights, this->transformationCheckers
+        iterationCount, (T_refIn_refMean * T_iter * T_refMean_dataIn), reference, stepReading, matches, outlierWeights, this->transformationCheckers
 		);
 		
 		//-----------------------------
