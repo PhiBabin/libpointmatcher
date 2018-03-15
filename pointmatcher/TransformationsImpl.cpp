@@ -96,7 +96,6 @@ bool TransformationsImpl<T>::RigidTransformation::checkParameters(const Transfor
 	const unsigned int nbCols = parameters.cols()-1;
 
 	const TransformationParameters R(parameters.topLeftCorner(nbRows, nbCols));
-	
 	if(anyabs(1 - R.determinant()) > epsilon)
 		return false;
 	else

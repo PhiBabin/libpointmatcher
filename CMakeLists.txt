@@ -125,9 +125,12 @@ set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${Boost_LIBRARIES})
 # DEPENDENCY: eigen 3
 #--------------------
 find_path(EIGEN_INCLUDE_DIR Eigen/Core
+	${EIGEN_PATH}
 	/usr/local/include/eigen3
 	/usr/include/eigen3
 )
+
+message(STATUS "Using eigen3 dir: ${EIGEN_INCLUDE_DIR}")
 include_directories(${EIGEN_INCLUDE_DIR})
 #note: no library to add, eigen rely only on headers
 
