@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <iostream>
 #include <limits>
+#include <sstream>
 
 using namespace std;
 using namespace PointMatcherSupport;
@@ -387,7 +388,7 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const Parameters
         }
     }
     if (robustFctId == -1) {
-        throw runtime_error("Invalid robust function name.");
+        throw InvalidParameter("Invalid robust function name.");
     }
 }
 
@@ -397,48 +398,53 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 	const DataPoints& filteredReference,
 	const Matches& input)
 {
-    if (useMad) {
-        // 0.6745 is give the best constant for a gaussian distribution
-        scale = input.getMedianAbsDeviation() / 0.6745;
-    }
-    const T s2 = scale * scale;
+	if (useMad) {
+		// 0.6745 is give the best constant for a gaussian distribution
+		scale = sqrt(input.getMedianAbsDeviation()) / 0.6745;
+	}
+	const T s2 = scale * scale;
 
-    // input.dists.array() is an array of the squared distance (e²)
-    OutlierWeights w, aboveThres, bellowThres;
-    switch (robustFctId) {
-        case RobustFctId::Cauchy: // 1/(1 + e²/s²)
-            w = (1 + input.dists.array() / s2).inverse();
-            break;
-        case RobustFctId::Welsch: // exp(-e²/s²)
-            w = (-input.dists.array() / s2).exp();
-            break;
-        case RobustFctId::SwitchableConstraint: // if e² > s² then 4 * s²/(s + e²)²
-            aboveThres = 4.0 * s2 * ((scale + input.dists.array()).square()).inverse();
-            w = (input.dists.array() >= s2).select(aboveThres, 1.0);
-            break;
-        case RobustFctId::GM:    // s²/(s + e²)²
-            w = scale*scale*((scale + input.dists.array()).square()).inverse();
-            break;
-        case RobustFctId::Tukey: // if e² < s then (1-e²/s²)²
-            bellowThres = (1 - input.dists.array() / s2).square();
-            w = (input.dists.array() >= s2).select(0.0, bellowThres);
-            break;
-        case RobustFctId::Huber: // if |e| >= s then s/|e| = s/sqrt(e²)
-            aboveThres = scale * (input.dists.array().sqrt().inverse());
-            w = (input.dists.array() >= s2).select(aboveThres, 1.0);
-            break;
-        case RobustFctId::L1: // 1/|e| = 1/sqrt(e²)
-            w = (input.dists.array().sqrt().inverse());
-            break;
-        default:
-            break;
-    }
+	// e² = squared distance
+	auto e2 = input.dists.array();
+
+	OutlierWeights w, aboveThres, bellowThres;
+	switch (robustFctId) {
+		case RobustFctId::Cauchy: // 1/(1 + e²/s²)
+			w = (1 + e2 / s2).inverse();
+			break;
+		case RobustFctId::Welsch: // exp(-e²/s²)
+			w = (-e2 / s2).exp();
+			break;
+		case RobustFctId::SwitchableConstraint: // if e² > s² then 4 * s²/(s + e²)²
+			aboveThres = 4.0 * s2 * ((scale + e2).square()).inverse();
+			w = (e2 >= s2).select(aboveThres, 1.0);
+			break;
+		case RobustFctId::GM:    // s²/(s + e²)²
+			w = scale*scale*((scale + e2).square()).inverse();
+			break;
+		case RobustFctId::Tukey: // if e² < s then (1-e²/s²)²
+			bellowThres = (1 - e2 / s2).square();
+			w = (e2 >= s2).select(0.0, bellowThres);
+			break;
+		case RobustFctId::Huber: // if |e| >= s then s/|e| = s/sqrt(e²)
+			aboveThres = scale * (e2.sqrt().inverse());
+			w = (e2 >= s2).select(aboveThres, 1.0);
+			break;
+		case RobustFctId::L1: // 1/|e| = 1/sqrt(e²)
+			w = e2.sqrt().inverse();
+			break;
+		default:
+			break;
+	}
+
+	// In the minimizer, zero weight are ignored, we want them to be notice by having the smallest value
+	w = (w.array() <= 1e-50).select(1e-50, w);
 
 
 	if(squaredApproximation != std::numeric_limits<T>::infinity())
 	{
 		//Note from Eigen documentation: (if statement).select(then matrix, else matrix)
-		w = (input.dists.array() >= squaredApproximation).select(0.0, w);
+		w = (e2 >= squaredApproximation).select(0.0, w);
 	}
 
 	return w;
