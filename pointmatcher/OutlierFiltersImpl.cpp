@@ -384,27 +384,58 @@ template struct OutlierFiltersImpl<double>::GenericDescriptorOutlierFilter;
 
 // RobustOutlierFilter
 template<typename T>
-OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const Parameters& params):
-    OutlierFilter("RobustOutlierFilter", RobustOutlierFilter::availableParameters(), params),
+typename OutlierFiltersImpl<T>::RobustOutlierFilter::RobustFctMap
+        OutlierFiltersImpl<T>::RobustOutlierFilter::robustFcts = {
+  {"cauchy", RobustFctId::Cauchy},
+  {"welsch", RobustFctId::Welsch},
+  {"sc",     RobustFctId::SwitchableConstraint},
+  {"gm",     RobustFctId::GM},
+  {"tukey",  RobustFctId::Tukey},
+  {"huber",  RobustFctId::Huber},
+  {"L1",     RobustFctId::L1},
+  {"Lp",     RobustFctId::Lp}
+};
+
+template<typename T>
+OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const std::string& className,
+                                                                const ParametersDoc paramsDoc,
+                                                                const Parameters& params):
+    OutlierFilter(className, paramsDoc, params),
     robustFctName(Parametrizable::get<string>("robustFct")),
     scale(Parametrizable::get<T>("scale")),
     squaredApproximation(pow(Parametrizable::get<T>("approximation"), 2)),
     useMad(Parametrizable::get<bool>("useMadForScale")),
     robustFctId(-1)
 {
-    for (size_t i = 0; i < ROBUST_FCT_TABLE_LEN; ++i) {
-        if (robustFctName == ROBUST_FCT_TABLE[i].name) {
-            robustFctId = ROBUST_FCT_TABLE[i].id;
-            break;
-        }
-    }
-    if (robustFctId == -1) {
-        throw InvalidParameter("Invalid robust function name.");
-    }
+  resolveEstimatorName();
+}
+
+template<typename T>
+OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const Parameters& params):
+        RobustOutlierFilter("RobustOutlierFilter", RobustOutlierFilter::availableParameters(), params)
+{
+}
+
+
+template<typename T>
+void OutlierFiltersImpl<T>::RobustOutlierFilter::resolveEstimatorName(){
+  if (robustFcts.find(robustFctName) == robustFcts.end()) {
+    throw InvalidParameter("Invalid robust function name.");
+  }
+  robustFctId = robustFcts[robustFctName];
 }
 
 template<typename T>
 typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFilter::compute(
+        const DataPoints& filteredReading,
+        const DataPoints& filteredReference,
+        const Matches& input)
+{
+ return this->robustFiltering(filteredReading, filteredReference, input);
+}
+
+template<typename T>
+typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFilter::robustFiltering(
 	const DataPoints& filteredReading,
 	const DataPoints& filteredReference,
 	const Matches& input)
@@ -444,6 +475,10 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 		case RobustFctId::L1: // 1/|e| = 1/sqrt(e²)
 			w = e2.sqrt().inverse();
 			break;
+		case RobustFctId::Lp: // L_p = (x^p + y^p + z^p)z^(1/p)
+			// w =  L_p / e²
+      ////w = e2.lpNorm<scale>() / e2;
+			break;
 		default:
 			break;
 	}
@@ -470,3 +505,26 @@ void OutlierFiltersImpl<T>::RobustOutlierFilter::addStat(InspectorPtr& inspector
 template struct OutlierFiltersImpl<float>::RobustOutlierFilter;
 template struct OutlierFiltersImpl<double>::RobustOutlierFilter;
 
+
+// RobustTrimmedOutlierFilter
+template<typename T>
+OutlierFiltersImpl<T>::RobustTrimmedOutlierFilter::RobustTrimmedOutlierFilter(const Parameters& params):
+        RobustOutlierFilter("RobustTrimmedOutlierFilter", RobustTrimmedOutlierFilter::availableParameters(), params),
+        ratio(Parametrizable::get<T>("ratio"))
+{
+  this->resolveEstimatorName();
+}
+
+template<typename T>
+typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustTrimmedOutlierFilter::compute(
+        const DataPoints& filteredReading,
+        const DataPoints& filteredReference,
+        const Matches& input) {
+  OutlierWeights w = this->robustFiltering(filteredReading, filteredReference, input);
+
+  const T limit = input.getDistsQuantile(ratio);
+  return (input.dists.array() <= limit).select(w, 0.0);
+}
+
+template struct OutlierFiltersImpl<float>::RobustTrimmedOutlierFilter;
+template struct OutlierFiltersImpl<double>::RobustTrimmedOutlierFilter;
