@@ -280,7 +280,6 @@ set(POINTMATCHER_SRC
 	pointmatcher/Transformation.cpp
 	pointmatcher/TransformationChecker.cpp
 	pointmatcher/Inspector.cpp
-	pointmatcher/InMemoryInspectorImpl.cpp
 	pointmatcher/IO.cpp
 	pointmatcher/IOFunctions.cpp
 	pointmatcher/Bibliography.cpp
