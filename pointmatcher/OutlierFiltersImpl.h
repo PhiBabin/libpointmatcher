@@ -290,6 +290,26 @@ struct OutlierFiltersImpl
       RobustTrimmedOutlierFilter(const Parameters& params = Parameters());
     };
 
+    struct IterativeCauchyOutlierFilter: public OutlierFilter
+    {
+        inline static const std::string description()
+        {
+          return "Bosse's implementation of Cauchy, it multiply the scale constant by the iteration number";
+        }
+        inline static const ParametersDoc availableParameters()
+        {
+          return boost::assign::list_of<ParameterDoc>
+                  ( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
+                  ;
+        }
+
+        const T scale;
+        int iteration;
+
+        IterativeCauchyOutlierFilter(const Parameters& params = Parameters());
+        virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
+    };
+
 }; // OutlierFiltersImpl
 
 #endif // __POINTMATCHER_OUTLIERFILTERS_H

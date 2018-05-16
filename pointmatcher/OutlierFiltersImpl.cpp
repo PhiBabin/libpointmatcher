@@ -528,3 +528,32 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustTrimmedOut
 
 template struct OutlierFiltersImpl<float>::RobustTrimmedOutlierFilter;
 template struct OutlierFiltersImpl<double>::RobustTrimmedOutlierFilter;
+
+
+// IterativeCauchyOutlierFilter
+template<typename T>
+OutlierFiltersImpl<T>::IterativeCauchyOutlierFilter::IterativeCauchyOutlierFilter(const Parameters& params):
+        OutlierFilter("IterativeCauchyOutlierFilter", IterativeCauchyOutlierFilter::availableParameters(), params),
+        scale(Parametrizable::get<T>("scale")),
+        iteration(1)
+{
+}
+
+template<typename T>
+typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::IterativeCauchyOutlierFilter::compute(
+        const DataPoints& filteredReading,
+        const DataPoints& filteredReference,
+        const Matches& input)
+{
+  const T n = iteration;
+  const T s2 = scale * scale;
+
+  iteration++;
+  // e² = squared distance
+  auto e2 = input.dists.array();
+  return (1 + e2 / (n * s2)).inverse();
+
+}
+
+template struct OutlierFiltersImpl<float>::IterativeCauchyOutlierFilter;
+template struct OutlierFiltersImpl<double>::IterativeCauchyOutlierFilter;

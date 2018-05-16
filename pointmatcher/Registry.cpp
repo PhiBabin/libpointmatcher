@@ -101,6 +101,7 @@ PointMatcher<T>::PointMatcher()
 	ADD_TO_REGISTRAR(OutlierFilter, GenericDescriptorOutlierFilter, typename OutlierFiltersImpl<T>::GenericDescriptorOutlierFilter)
 	ADD_TO_REGISTRAR(OutlierFilter, RobustOutlierFilter, typename OutlierFiltersImpl<T>::RobustOutlierFilter)
 	ADD_TO_REGISTRAR(OutlierFilter, RobustTrimmedOutlierFilter, typename OutlierFiltersImpl<T>::RobustTrimmedOutlierFilter)
+	ADD_TO_REGISTRAR(OutlierFilter, IterativeCauchyOutlierFilter, typename OutlierFiltersImpl<T>::IterativeCauchyOutlierFilter)
 
 
 	ADD_TO_REGISTRAR_NO_PARAM(ErrorMinimizer, IdentityErrorMinimizer, typename ErrorMinimizersImpl<T>::IdentityErrorMinimizer)
