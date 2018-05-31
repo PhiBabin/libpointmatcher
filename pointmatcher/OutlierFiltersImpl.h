@@ -261,6 +261,8 @@ struct OutlierFiltersImpl
       const T squaredApproximation;
       const bool useMad;
       int robustFctId;
+      int iteration;
+      T mad_1st_iter;
 
       virtual void resolveEstimatorName();
       virtual OutlierWeights robustFiltering(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);

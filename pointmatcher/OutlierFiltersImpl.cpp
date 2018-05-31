@@ -405,7 +405,9 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const std::strin
     scale(Parametrizable::get<T>("scale")),
     squaredApproximation(pow(Parametrizable::get<T>("approximation"), 2)),
     useMad(Parametrizable::get<bool>("useMadForScale")),
-    robustFctId(-1)
+    robustFctId(-1),
+    iteration(1),
+    mad_1st_iter(0.0)
 {
   resolveEstimatorName();
 }
@@ -440,14 +442,19 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 	const DataPoints& filteredReference,
 	const Matches& input)
 {
-	if (useMad) {
-		// 0.6745 is give the best constant for a gaussian distribution
-		scale = sqrt(input.getMedianAbsDeviation()) / 0.6745;
-	}
-	const T s2 = scale * scale;
+	//if (useMad) {
+  // 0.6745 is give the best constant for a gaussian distribution
+  //scale = sqrt(input.getMedianAbsDeviation()) / 0.6745;
+	//}
+  if (iteration == 1) {
+     mad_1st_iter = sqrt(input.getMedianAbsDeviation());
+  }
+  iteration++;
+
+  const T s2 = scale * scale;
 
 	// e² = squared distance
-	auto e2 = input.dists.array();
+    auto e2 = input.dists.array() / (mad_1st_iter * mad_1st_iter);
 
 	OutlierWeights w, aboveThres, bellowThres;
 	switch (robustFctId) {
