@@ -393,6 +393,7 @@ typename OutlierFiltersImpl<T>::RobustOutlierFilter::RobustFctMap
   {"tukey",  RobustFctId::Tukey},
   {"huber",  RobustFctId::Huber},
   {"L1",     RobustFctId::L1},
+  {"dist_t",     RobustFctId::DistT},
   {"Lp",     RobustFctId::Lp}
 };
 
@@ -440,17 +441,21 @@ template<typename T>
 typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFilter::robustFiltering(
 	const DataPoints& filteredReading,
 	const DataPoints& filteredReference,
-	const Matches& input)
-{
+	const Matches& input) {
 	//if (useMad) {
-  // 0.6745 is give the best constant for a gaussian distribution
-  //scale = sqrt(input.getMedianAbsDeviation()) / 0.6745;
+	// 0.6745 is give the best constant for a gaussian distribution
+	//scale = sqrt(input.getMedianAbsDeviation()) / 0.6745;
 	//}
-  if (iteration == 1) {
-     mad_1st_iter = sqrt(input.getMedianAbsDeviation());
-  }
+	if (useMad) {
+		if (iteration == 1) {
+			mad_1st_iter = sqrt(input.getMedianAbsDeviation());
+		}
+	} else {
+		mad_1st_iter = 1.0; // We don't rescale
+	}
   iteration++;
 
+	const T s = scale;
   const T s2 = scale * scale;
 
 	// e² = squared distance
@@ -482,6 +487,12 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 		case RobustFctId::L1: // 1/|e| = 1/sqrt(e²)
 			w = e2.sqrt().inverse();
 			break;
+		case RobustFctId::DistT: { // ....
+      const T d = 3;
+      auto p = (1 + e2 / s).pow(-(s + d) / 2);
+      w = (1 + e2 / s).pow(-(s + d) / 2) * (s + d) * (s + e2).inverse();
+      break;
+    }
 		case RobustFctId::Lp: // L_p = (x^p + y^p + z^p)z^(1/p)
 			// w =  L_p / e²
       ////w = e2.lpNorm<scale>() / e2;
