@@ -393,7 +393,7 @@ typename OutlierFiltersImpl<T>::RobustOutlierFilter::RobustFctMap
   {"tukey",  RobustFctId::Tukey},
   {"huber",  RobustFctId::Huber},
   {"L1",     RobustFctId::L1},
-  {"dist_t",     RobustFctId::DistT},
+  {"student",     RobustFctId::Student},
   {"Lp",     RobustFctId::Lp}
 };
 
@@ -447,9 +447,9 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 	//scale = sqrt(input.getMedianAbsDeviation()) / 0.6745;
 	//}
 	if (useMad) {
-		if (iteration == 1) {
-			mad_1st_iter = sqrt(input.getMedianAbsDeviation());
-		}
+		//if (iteration == 1) {
+    mad_1st_iter = sqrt(input.getMedianAbsDeviation());
+		//}
 	} else {
 		mad_1st_iter = 1.0; // We don't rescale
 	}
@@ -487,16 +487,12 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 		case RobustFctId::L1: // 1/|e| = 1/sqrt(e²)
 			w = e2.sqrt().inverse();
 			break;
-		case RobustFctId::DistT: { // ....
+		case RobustFctId::Student: { // ....
       const T d = 3;
       auto p = (1 + e2 / s).pow(-(s + d) / 2);
       w = (1 + e2 / s).pow(-(s + d) / 2) * (s + d) * (s + e2).inverse();
       break;
     }
-		case RobustFctId::Lp: // L_p = (x^p + y^p + z^p)z^(1/p)
-			// w =  L_p / e²
-      ////w = e2.lpNorm<scale>() / e2;
-			break;
 		default:
 			break;
 	}
