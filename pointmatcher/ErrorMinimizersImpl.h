@@ -90,7 +90,7 @@ struct ErrorMinimizersImpl
 	{
 		inline static const std::string description()
 		{
-			return "Point-to-point similarity error (rotation + translation + scale). The scale is the same for all coordinates. Based on SVD decomposition. Per \\cite{Umeyama1991}.";
+			return "Point-to-point similarity error (rotation + translation + tuning). The tuning is the same for all coordinates. Based on SVD decomposition. Per \\cite{Umeyama1991}.";
 		}
 
 		//virtual TransformationParameters compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches);

@@ -67,7 +67,7 @@ struct TransformationsImpl
 	{
 		inline static const std::string description()
 		{
-			return "Similarity transformation (rotation + translation + scale).";
+			return "Similarity transformation (rotation + translation + tuning).";
 		}
 		
 		virtual DataPoints compute(const DataPoints& input, const TransformationParameters& parameters) const;

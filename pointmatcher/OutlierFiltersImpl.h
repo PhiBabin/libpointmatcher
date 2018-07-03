@@ -226,7 +226,7 @@ struct OutlierFiltersImpl
 
 		inline static const std::string description()
 		{
-            return "Robust weight function part of the M-Estimator familly. 7 robust functions to choose from (Cauchy, Welsch, Switchable Constraint, Geman-McClure, Tukey, Huber and L1). The Welsch weight uses an exponential decay reducing the influence of matched point farther away \\cite{RobustWeightFunctions}. More explicitly, the function is w = exp[- (matched distance)^2/scale^2].";
+            return "Robust weight function part of the M-Estimator familly. 7 robust functions to choose from (Cauchy, Welsch, Switchable Constraint, Geman-McClure, Tukey, Huber and L1). The Welsch weight uses an exponential decay reducing the influence of matched point farther away \\cite{RobustWeightFunctions}. More explicitly, the function is w = exp[- (matched distance)^2/tuning^2].";
 		}
 		inline static const ParametersDoc availableParameters()
 		{
@@ -234,8 +234,9 @@ struct OutlierFiltersImpl
                 ( "robustFct", "Type of robust function used. Available fct: 'cauchy', 'welsch', 'sc'(aka Switchable-Constraint), 'gm' (aka Geman-McClure), 'tukey', 'huber' and 'L1'. (Default: cauchy)", "cauchy")
                 ( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
 				        ( "approximation", "If the matched distance is larger than this threshold, its weight will be forced to zero. This can save computation as zero values are not minimized. If set to inf (default value), no approximation is done. The unit of this parameter is the same as the distance used, typically meters.", "inf", "0.0", "inf", &P::Comp<T>)
-                ( "useMadForScale", "Instead of using the scale parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
-                ;
+                ( "useMadForScale", "Instead of using the tuning parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
+                ( "useBergstromScale", "Use an iterative exponentialy decreasive value for the tuning", "0", "0", "1", &P::Comp<bool>)
+                    ;
 		}
 
 
@@ -258,12 +259,14 @@ struct OutlierFiltersImpl
 			typedef std::map<std::string, RobustFctId> RobustFctMap;
       static RobustFctMap robustFcts;
       const std::string robustFctName;
-      T scale;
+      T tuning;
       const T squaredApproximation;
       const bool useMad;
+      const bool useBergstromScale;
       int robustFctId;
       int iteration;
-      T mad_1st_iter;
+      T scale;
+
 
       virtual void resolveEstimatorName();
       virtual OutlierWeights robustFiltering(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
@@ -283,7 +286,8 @@ struct OutlierFiltersImpl
                 ( "ratio", "Percentile of the distance to keep, this is an estimation of the overlap between the scans", "0.2", "0.0000001", "inf", &P::Comp<T>)
                 ( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
                 ( "approximation", "If the matched distance is larger than this threshold, its weight will be forced to zero. This can save computation as zero values are not minimized. If set to inf (default value), no approximation is done. The unit of this parameter is the same as the distance used, typically meters.", "inf", "0.0", "inf", &P::Comp<T>)
-                ( "useMadForScale", "Instead of using the scale parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
+                ( "useMadForScale", "Instead of using the tuning parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
+                ( "useBergstromScale", "Use an iterative exponentialy decreasive value for the tuning", "0", "0", "1", &P::Comp<bool>)
                 ;
       }
 
@@ -297,7 +301,7 @@ struct OutlierFiltersImpl
     {
         inline static const std::string description()
         {
-          return "Bosse's implementation of Cauchy, it multiply the scale constant by the iteration number";
+          return "Bosse's implementation of Cauchy, it multiply the tuning constant by the iteration number";
         }
         inline static const ParametersDoc availableParameters()
         {

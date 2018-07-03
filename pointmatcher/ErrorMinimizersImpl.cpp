@@ -183,7 +183,7 @@ template struct ErrorMinimizersImpl<float>::PointToPointErrorMinimizer;
 template struct ErrorMinimizersImpl<double>::PointToPointErrorMinimizer;
 
 ///////////////////////////////////////////////////////////////////////
-// Point To POINT ErrorMinimizer with similarity, solve for rotation + translation + scale
+// Point To POINT ErrorMinimizer with similarity, solve for rotation + translation + tuning
 ///////////////////////////////////////////////////////////////////////
 template<typename T>
 typename PointMatcher<T>::TransformationParameters ErrorMinimizersImpl<T>::PointToPointSimilarityErrorMinimizer::compute(const ErrorElements& mPts_const)

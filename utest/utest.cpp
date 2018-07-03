@@ -235,10 +235,10 @@ TEST(icpTest, similarityTransform)
 	// Compute current ICP transform
 	PM::TransformationParameters curT = icp(pts0, pts1);
 
-	// We know the scale we're looking for is 1.04.
+	// We know the tuning we're looking for is 1.04.
 	double scale = pow(curT.determinant(), 1.0/3.0);
 	EXPECT_LT( std::abs(scale - 1.04), 0.001)
-	  << "Expecting the similarity transform scale to be 1.04.";
+	  << "Expecting the similarity transform tuning to be 1.04.";
 }
 
 TEST(icpTest, icpSequenceTest)

@@ -403,12 +403,13 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const std::strin
                                                                 const Parameters& params):
     OutlierFilter(className, paramsDoc, params),
     robustFctName(Parametrizable::get<string>("robustFct")),
-    scale(Parametrizable::get<T>("scale")),
+    tuning(Parametrizable::get<T>("scale")),
     squaredApproximation(pow(Parametrizable::get<T>("approximation"), 2)),
     useMad(Parametrizable::get<bool>("useMadForScale")),
+    useBergstromScale(Parametrizable::get<bool>("useBergstromScale")),
     robustFctId(-1),
     iteration(1),
-    mad_1st_iter(0.0)
+    scale(0.0)
 {
   resolveEstimatorName();
 }
@@ -442,55 +443,74 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 	const DataPoints& filteredReading,
 	const DataPoints& filteredReference,
 	const Matches& input) {
+
+
+  T k = tuning;
+
 	//if (useMad) {
 	// 0.6745 is give the best constant for a gaussian distribution
-	//scale = sqrt(input.getMedianAbsDeviation()) / 0.6745;
+	//tuning = sqrt(input.getMedianAbsDeviation()) / 0.6745;
 	//}
 	if (useMad) {
-		//if (iteration == 1) {
-    mad_1st_iter = sqrt(input.getMedianAbsDeviation());
-		//}
-	} else {
-		mad_1st_iter = 1.0; // We don't rescale
-	}
+		if (iteration == 1) {
+      scale = sqrt(input.getMedianAbsDeviation());
+		}
+	} else if (useBergstromScale) {
+    if (robustFctId == RobustFctId::Cauchy) {
+      k = 4.3040;
+    } else if (robustFctId == RobustFctId::Tukey) {
+      k = 7.0589;
+    } else if (robustFctId == RobustFctId::Huber) {
+      k = 2.0138;
+    }
+    // The tuning constant is the target scale that we want to reach
+    // It's a bit confusing to use the tuning constant for scaling...
+    if (iteration == 1) {
+      scale = 1.9 * sqrt(input.getDistsQuantile(0.5));
+    } else { // TODO: maybe add it has another parameter or make him a function of the max iteration
+      const T CONVERGENCE_RATE = 0.85;
+      scale = CONVERGENCE_RATE * (scale - tuning) + tuning;
+    }
+  } else {
+    scale = 1.0; // We don't rescale
+  }
   iteration++;
 
-	const T s = scale;
-  const T s2 = scale * scale;
 
+  const T k2 = k * k;
 	// e² = squared distance
-    auto e2 = input.dists.array() / (mad_1st_iter * mad_1st_iter);
+  auto e2 = input.dists.array() / (scale * scale);
 
 	OutlierWeights w, aboveThres, bellowThres;
 	switch (robustFctId) {
-		case RobustFctId::Cauchy: // 1/(1 + e²/s²)
-			w = (1 + e2 / s2).inverse();
+		case RobustFctId::Cauchy: // 1/(1 + e²/k²)
+			w = (1 + e2 / k2).inverse();
 			break;
-		case RobustFctId::Welsch: // exp(-e²/s²)
-			w = (-e2 / s2).exp();
+		case RobustFctId::Welsch: // exp(-e²/k²)
+			w = (-e2 / k2).exp();
 			break;
-		case RobustFctId::SwitchableConstraint: // if e² > s² then 4 * s²/(s + e²)²
-			aboveThres = 4.0 * s2 * ((scale + e2).square()).inverse();
-			w = (e2 >= s2).select(aboveThres, 1.0);
+		case RobustFctId::SwitchableConstraint: // if e² > k² then 4 * k²/(k + e²)²
+			aboveThres = 4.0 * k2 * ((k + e2).square()).inverse();
+			w = (e2 >= k2).select(aboveThres, 1.0);
 			break;
-		case RobustFctId::GM:    // s²/(s + e²)²
-			w = scale*scale*((scale + e2).square()).inverse();
+		case RobustFctId::GM:    // k²/(k + e²)²
+			w = k2*((k + e2).square()).inverse();
 			break;
-		case RobustFctId::Tukey: // if e² < s then (1-e²/s²)²
-			bellowThres = (1 - e2 / s2).square();
-			w = (e2 >= s2).select(0.0, bellowThres);
+		case RobustFctId::Tukey: // if e² < k then (1-e²/k²)²
+			bellowThres = (1 - e2 / k2).square();
+			w = (e2 >= k2).select(0.0, bellowThres);
 			break;
-		case RobustFctId::Huber: // if |e| >= s then s/|e| = s/sqrt(e²)
-			aboveThres = scale * (e2.sqrt().inverse());
-			w = (e2 >= s2).select(aboveThres, 1.0);
+		case RobustFctId::Huber: // if |e| >= k then k/|e| = k/sqrt(e²)
+			aboveThres = k * (e2.sqrt().inverse());
+			w = (e2 >= k2).select(aboveThres, 1.0);
 			break;
 		case RobustFctId::L1: // 1/|e| = 1/sqrt(e²)
 			w = e2.sqrt().inverse();
 			break;
 		case RobustFctId::Student: { // ....
       const T d = 3;
-      auto p = (1 + e2 / s).pow(-(s + d) / 2);
-      w = (1 + e2 / s).pow(-(s + d) / 2) * (s + d) * (s + e2).inverse();
+      auto p = (1 + e2 / k).pow(-(k + d) / 2);
+      w = p * (k + d) * (k + e2).inverse();
       break;
     }
 		default:
@@ -513,7 +533,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 template<typename T>
 void OutlierFiltersImpl<T>::RobustOutlierFilter::addStat(InspectorPtr& inspector) const
 {
-	inspector->addStat("Scale", scale);
+	inspector->addStat("Scale", tuning);
 }
 
 template struct OutlierFiltersImpl<float>::RobustOutlierFilter;
