@@ -406,6 +406,7 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const std::strin
     tuning(Parametrizable::get<T>("scale")),
     squaredApproximation(pow(Parametrizable::get<T>("approximation"), 2)),
     useMad(Parametrizable::get<bool>("useMadForScale")),
+    nbMadIteration(Parametrizable::get<int>("nbMadIteration")),
     useBergstromScale(Parametrizable::get<bool>("useBergstromScale")),
     robustFctId(-1),
     iteration(1),
@@ -452,7 +453,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 	//tuning = sqrt(input.getMedianAbsDeviation()) / 0.6745;
 	//}
 	if (useMad) {
-		if (iteration == 1) {
+		if (iteration <= nbMadIteration or nbMadIteration == 0) {
       scale = sqrt(input.getMedianAbsDeviation());
 		}
 	} else if (useBergstromScale) {

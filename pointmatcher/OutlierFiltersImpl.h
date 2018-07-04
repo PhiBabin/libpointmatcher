@@ -235,6 +235,7 @@ struct OutlierFiltersImpl
                 ( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
 				        ( "approximation", "If the matched distance is larger than this threshold, its weight will be forced to zero. This can save computation as zero values are not minimized. If set to inf (default value), no approximation is done. The unit of this parameter is the same as the distance used, typically meters.", "inf", "0.0", "inf", &P::Comp<T>)
                 ( "useMadForScale", "Instead of using the tuning parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
+                ( "nbMadIteration", "For how many iteration MAD is recalculate. This parameter is only use if useMadForScale==1. If nbMadIteration==0 then it's recalculate at every iteration", "0", "0", "100", &P::Comp<int>)
                 ( "useBergstromScale", "Use an iterative exponentialy decreasive value for the tuning", "0", "0", "1", &P::Comp<bool>)
                     ;
 		}
@@ -262,6 +263,7 @@ struct OutlierFiltersImpl
       T tuning;
       const T squaredApproximation;
       const bool useMad;
+      const int nbMadIteration;
       const bool useBergstromScale;
       int robustFctId;
       int iteration;
@@ -287,6 +289,7 @@ struct OutlierFiltersImpl
                 ( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
                 ( "approximation", "If the matched distance is larger than this threshold, its weight will be forced to zero. This can save computation as zero values are not minimized. If set to inf (default value), no approximation is done. The unit of this parameter is the same as the distance used, typically meters.", "inf", "0.0", "inf", &P::Comp<T>)
                 ( "useMadForScale", "Instead of using the tuning parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
+                ( "nbMadIteration", "For how many iteration MAD is recalculate. This parameter is only use if useMadForScale==1. If nbMadIteration==0 then it's recalculate at every iteration", "0", "0", "100", &P::Comp<int>)
                 ( "useBergstromScale", "Use an iterative exponentialy decreasive value for the tuning", "0", "0", "1", &P::Comp<bool>)
                 ;
       }
