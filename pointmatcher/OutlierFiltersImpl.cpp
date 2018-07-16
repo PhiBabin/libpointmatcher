@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include <set>
 
 using namespace std;
 using namespace PointMatcherSupport;
@@ -393,8 +394,7 @@ typename OutlierFiltersImpl<T>::RobustOutlierFilter::RobustFctMap
   {"tukey",  RobustFctId::Tukey},
   {"huber",  RobustFctId::Huber},
   {"L1",     RobustFctId::L1},
-  {"student",     RobustFctId::Student},
-  {"Lp",     RobustFctId::Lp}
+  {"student",     RobustFctId::Student}
 };
 
 template<typename T>
@@ -403,15 +403,18 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const std::strin
                                                                 const Parameters& params):
     OutlierFilter(className, paramsDoc, params),
     robustFctName(Parametrizable::get<string>("robustFct")),
-    tuning(Parametrizable::get<T>("scale")),
+    tuning(Parametrizable::get<T>("tuning")),
     squaredApproximation(pow(Parametrizable::get<T>("approximation"), 2)),
-    useMad(Parametrizable::get<bool>("useMadForScale")),
-    nbMadIteration(Parametrizable::get<int>("nbMadIteration")),
-    useBergstromScale(Parametrizable::get<bool>("useBergstromScale")),
+    scaleEstimator(Parametrizable::get<string>("scaleEstimator")),
+    nbIterationForScale(Parametrizable::get<int>("nbIterationForScale")),
     robustFctId(-1),
     iteration(1),
     scale(0.0)
 {
+  const set<string> validScaleEstimator = {"none", "mad", "berg", "std"};
+  if (validScaleEstimator.find(scaleEstimator) == validScaleEstimator.end()) {
+    throw InvalidParameter("Invalid scale estimator name.");
+  }
   resolveEstimatorName();
 }
 
@@ -452,11 +455,16 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 	// 0.6745 is give the best constant for a gaussian distribution
 	//tuning = sqrt(input.getMedianAbsDeviation()) / 0.6745;
 	//}
-	if (useMad) {
-		if (iteration <= nbMadIteration or nbMadIteration == 0) {
+	if (scaleEstimator == "mad") {
+		if (iteration <= nbIterationForScale or nbIterationForScale == 0) {
       scale = sqrt(input.getMedianAbsDeviation());
 		}
-	} else if (useBergstromScale) {
+	} else if (scaleEstimator == "std") {
+    if (iteration <= nbIterationForScale or nbIterationForScale == 0) {
+      scale = sqrt(input.getStandardDeviation());
+    }
+  } else if (scaleEstimator == "berg") {
+
     if (robustFctId == RobustFctId::Cauchy) {
       k = 4.3040;
     } else if (robustFctId == RobustFctId::Tukey) {
@@ -464,13 +472,16 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
     } else if (robustFctId == RobustFctId::Huber) {
       k = 2.0138;
     }
-    // The tuning constant is the target scale that we want to reach
-    // It's a bit confusing to use the tuning constant for scaling...
-    if (iteration == 1) {
-      scale = 1.9 * sqrt(input.getDistsQuantile(0.5));
-    } else { // TODO: maybe add it has another parameter or make him a function of the max iteration
-      const T CONVERGENCE_RATE = 0.85;
-      scale = CONVERGENCE_RATE * (scale - tuning) + tuning;
+
+    if (iteration <= nbIterationForScale or nbIterationForScale == 0) {
+      // The tuning constant is the target scale that we want to reach
+      // It's a bit confusing to use the tuning constant for scaling...
+      if (iteration == 1) {
+        scale = 1.9 * sqrt(input.getDistsQuantile(0.5));
+      } else { // TODO: maybe add it has another parameter or make him a function of the max iteration
+        const T CONVERGENCE_RATE = 0.85;
+        scale = CONVERGENCE_RATE * (scale - tuning) + tuning;
+      }
     }
   } else {
     scale = 1.0; // We don't rescale
@@ -479,7 +490,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 
 
   const T k2 = k * k;
-	// e² = squared distance
+	// e² = squared distance scaled
   auto e2 = input.dists.array() / (scale * scale);
 
 	OutlierWeights w, aboveThres, bellowThres;
@@ -534,7 +545,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 template<typename T>
 void OutlierFiltersImpl<T>::RobustOutlierFilter::addStat(InspectorPtr& inspector) const
 {
-	inspector->addStat("Scale", tuning);
+	inspector->addStat("Tuning", tuning);
 }
 
 template struct OutlierFiltersImpl<float>::RobustOutlierFilter;

@@ -232,12 +232,11 @@ struct OutlierFiltersImpl
 		{
             return boost::assign::list_of<ParameterDoc>
                 ( "robustFct", "Type of robust function used. Available fct: 'cauchy', 'welsch', 'sc'(aka Switchable-Constraint), 'gm' (aka Geman-McClure), 'tukey', 'huber' and 'L1'. (Default: cauchy)", "cauchy")
-                ( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
+                ( "tuning", "Tuning parameter used to limit the influence of outliers. If 'scaleEstimator' is 'none' then this parameter act as scale and it could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
 				        ( "approximation", "If the matched distance is larger than this threshold, its weight will be forced to zero. This can save computation as zero values are not minimized. If set to inf (default value), no approximation is done. The unit of this parameter is the same as the distance used, typically meters.", "inf", "0.0", "inf", &P::Comp<T>)
-                ( "useMadForScale", "Instead of using the tuning parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
-                ( "nbMadIteration", "For how many iteration MAD is recalculate. This parameter is only use if useMadForScale==1. If nbMadIteration==0 then it's recalculate at every iteration", "0", "0", "100", &P::Comp<int>)
-                ( "useBergstromScale", "Use an iterative exponentialy decreasive value for the tuning", "0", "0", "1", &P::Comp<bool>)
-                    ;
+                ( "scaleEstimator", "Instead of using the tuning parameter, scale estimator is used to tune the influence of outliers. 4 estimators are available ('none': no estimator, 'mad': use the median of absolute deviation (a kind of robust standard deviation, 'berg': an iterative exponentially decreasing estimator, 'std': Use standard deviation)", "none")
+                ( "nbIterationForScale", "For how many iteration the 'scaleEstimator' is recalculated. After 'nbIterationForScale' iteration the previous scale is kept. A nbIterationForScale==0 means that the estiamtor is recalculated at each iteration.", "0", "0", "100", &P::Comp<int>)
+                ;
 		}
 
 
@@ -254,17 +253,15 @@ struct OutlierFiltersImpl
 					Tukey=4,
 					Huber=5,
 					L1=6,
-          Student=7,
-					Lp=8
+          Student=7
 			};
 			typedef std::map<std::string, RobustFctId> RobustFctMap;
       static RobustFctMap robustFcts;
       const std::string robustFctName;
       T tuning;
       const T squaredApproximation;
-      const bool useMad;
-      const int nbMadIteration;
-      const bool useBergstromScale;
+      const std::string scaleEstimator;
+      const int nbIterationForScale;
       int robustFctId;
       int iteration;
       T scale;
@@ -285,12 +282,11 @@ struct OutlierFiltersImpl
       {
         return boost::assign::list_of<ParameterDoc>
                 ( "robustFct", "Type of robust function used. Available fct: 'cauchy', 'welsch', 'sc'(aka Switchable-Constraint), 'gm' (aka Geman-McClure), 'tukey', 'huber' and 'L1'. (Default: cauchy)", "cauchy")
-                ( "ratio", "Percentile of the distance to keep, this is an estimation of the overlap between the scans", "0.2", "0.0000001", "inf", &P::Comp<T>)
-                ( "scale", "Tuning parameter used to limit the influence of outliers. It could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
+                ( "tuning", "Tuning parameter used to limit the influence of outliers. If 'scaleEstimator' is 'none' then this parameter act as scale and it could be interpreted as a standard deviation. The unit of this parameter is the same as the distance used, typically meters.", "0.2", "0.0000001", "inf", &P::Comp<T>)
                 ( "approximation", "If the matched distance is larger than this threshold, its weight will be forced to zero. This can save computation as zero values are not minimized. If set to inf (default value), no approximation is done. The unit of this parameter is the same as the distance used, typically meters.", "inf", "0.0", "inf", &P::Comp<T>)
-                ( "useMadForScale", "Instead of using the tuning parameter, the Median of Absolute Deviations(MAD) is used to tune the influence of outliers.", "0", "0", "1", &P::Comp<bool>)
-                ( "nbMadIteration", "For how many iteration MAD is recalculate. This parameter is only use if useMadForScale==1. If nbMadIteration==0 then it's recalculate at every iteration", "0", "0", "100", &P::Comp<int>)
-                ( "useBergstromScale", "Use an iterative exponentialy decreasive value for the tuning", "0", "0", "1", &P::Comp<bool>)
+                ( "scaleEstimator", "Instead of using the tuning parameter, scale estimator is used to tune the influence of outliers. 4 estimators are available ('none': no estimator, 'mad': use the median of absolute deviation (a kind of robust standard deviation, 'berg': an iterative exponentially decreasing estimator)", "none")
+                ( "nbIterationForScale", "For how many iteration the 'scaleEstimator' is recalculated. After 'nbIterationForScale' iteration the previous scale is kept. A nbIterationForScale==0 means that the estiamtor is recalculated at each iteration.", "0", "0", "100", &P::Comp<int>)
+                ( "ratio", "Percentile of the distance to keep, this is an estimation of the overlap between the scans", "0.2", "0.0000001", "inf", &P::Comp<T>)
                 ;
       }
 

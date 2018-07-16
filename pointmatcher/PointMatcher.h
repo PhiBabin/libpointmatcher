@@ -385,6 +385,7 @@ struct PointMatcher
 		
 		T getDistsQuantile(const T quantile) const;
 		T getMedianAbsDeviation() const;
+		T getStandardDeviation() const;
 	};
 
 	//! Weights of the associations between the points in Matches and the points in the reference.

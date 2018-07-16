@@ -97,5 +97,12 @@ T PointMatcher<T>::Matches::getMedianAbsDeviation() const
 	return deviations.data()[deviations.size() / 2];
 }
 
+template<typename T>
+T PointMatcher<T>::Matches::getStandardDeviation() const
+{
+  const T mean = dists.mean();
+  return  sqrt(dists.array().square().mean() - mean * mean);
+}
+
 template struct PointMatcher<float>::Matches;
 template struct PointMatcher<double>::Matches;
