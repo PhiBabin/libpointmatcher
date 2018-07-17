@@ -100,8 +100,8 @@ T PointMatcher<T>::Matches::getMedianAbsDeviation() const
 template<typename T>
 T PointMatcher<T>::Matches::getStandardDeviation() const
 {
-  const T mean = dists.mean();
-  return  sqrt(dists.array().square().mean() - mean * mean);
+  auto d = dists.array();
+  return std::sqrt((d - d.mean()).square().sum()/(d.size()-1));
 }
 
 template struct PointMatcher<float>::Matches;
