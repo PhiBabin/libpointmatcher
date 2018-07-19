@@ -44,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include <sstream>
 #include <set>
+#include <numeric>
 
 using namespace std;
 using namespace PointMatcherSupport;
@@ -196,19 +197,26 @@ T OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::optimizeInlierRatio(const 
 		throw ConvergenceError("no outlier to filter");
 			
 	std::sort(tmpSortedDist.begin(), tmpSortedDist.end());
+  std::vector<T> tmpCumSumSortedDist = tmpSortedDist;
+  std::partial_sum(tmpSortedDist.begin(), tmpSortedDist.end(), tmpCumSumSortedDist.begin());
 
 	const int minEl = floor(this->minRatio*points_nbr);
 	const int maxEl = floor(this->maxRatio*points_nbr);
 
 	// Return std::vector to an eigen::vector
-	Eigen::Map<LineArray> sortedDist(&tmpSortedDist[0], points_nbr);
+	Eigen::Map<LineArray> sortedDist(&tmpCumSumSortedDist[0], points_nbr);
 
 	const LineArray trunkSortedDist = sortedDist.segment(minEl, maxEl-minEl);
-	const T lowerSum = sortedDist.head(minEl).sum();
+  //const T lowerSum = sortedDist.head(minEl).sum();
+	const T lowerSum = sortedDist[minEl];
 	const LineArray ids = LineArray::LinSpaced(trunkSortedDist.rows(), minEl+1, maxEl);
-	const LineArray ratio = ids / points_nbr;
-	const LineArray deno = ratio.pow(this->lambda);
-	const LineArray FRMS = deno.inverse().square() * ids.inverse() * (lowerSum + trunkSortedDist);
+	const LineArray ratio = ids / points_nbr; // ratio for each of element between minEl and maxEl
+	const LineArray deno = ratio.pow(this->lambda); // f^λ
+  // frms = ( sum(dists[0:minEl]) + dists[minEl:maxEl])/(f^2λ)/id
+  // frms = ( sum(dists[0:minEl]) + dists[minEl:maxEl])/(id * (id/n)^2λ)
+  // frms = ( sum(dists[0:minEl]) + dists[minEl:maxEl])/(id^(2λ+1))*n^-2λ) // old
+  // frms = cumSumDists[minEl:maxEl]/id / (f^2λ)
+	const LineArray FRMS = deno.inverse().square() * ids.inverse() * (trunkSortedDist);
 	int minIndex(0);// = FRMS.minCoeff();
 	FRMS.minCoeff(&minIndex);
 	const T optRatio = (float)(minIndex + minEl)/ (float)points_nbr;
