@@ -208,15 +208,11 @@ T OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::optimizeInlierRatio(const 
 
 	const LineArray trunkSortedDist = sortedDist.segment(minEl, maxEl-minEl);
   //const T lowerSum = sortedDist.head(minEl).sum();
-	const T lowerSum = sortedDist[minEl];
 	const LineArray ids = LineArray::LinSpaced(trunkSortedDist.rows(), minEl+1, maxEl);
 	const LineArray ratio = ids / points_nbr; // ratio for each of element between minEl and maxEl
 	const LineArray deno = ratio.pow(this->lambda); // f^λ
-  // frms = ( sum(dists[0:minEl]) + dists[minEl:maxEl])/(f^2λ)/id
-  // frms = ( sum(dists[0:minEl]) + dists[minEl:maxEl])/(id * (id/n)^2λ)
-  // frms = ( sum(dists[0:minEl]) + dists[minEl:maxEl])/(id^(2λ+1))*n^-2λ) // old
-  // frms = cumSumDists[minEl:maxEl]/id / (f^2λ)
-	const LineArray FRMS = deno.inverse().square() * ids.inverse() * (trunkSortedDist);
+  // frms = cumSumDists[minEl:maxEl] / id / (f^λ)²
+	const LineArray FRMS = trunkSortedDist * ids.inverse() * deno.inverse().square() ;
 	int minIndex(0);// = FRMS.minCoeff();
 	FRMS.minCoeff(&minIndex);
 	const T optRatio = (float)(minIndex + minEl)/ (float)points_nbr;
