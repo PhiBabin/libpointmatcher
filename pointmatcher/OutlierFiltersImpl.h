@@ -239,7 +239,7 @@ struct OutlierFiltersImpl
                 ;
 		}
 
-
+      Matrix computePointToPlanDistance(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
         virtual OutlierWeights compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const Matches& input);
       RobustOutlierFilter(const std::string& className, const ParametersDoc paramsDoc, const Parameters& params);
       RobustOutlierFilter(const Parameters& params = Parameters());

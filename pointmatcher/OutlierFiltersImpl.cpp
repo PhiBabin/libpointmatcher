@@ -48,6 +48,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 using namespace PointMatcherSupport;
+using namespace Eigen;
 
 // NullOutlierFilter
 template<typename T>
@@ -446,6 +447,46 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
  return this->robustFiltering(filteredReading, filteredReference, input);
 }
 
+
+
+template<typename T>
+typename PointMatcher<T>::Matrix
+OutlierFiltersImpl<T>::RobustOutlierFilter::computePointToPlanDistance(
+        const DataPoints& reading,
+        const DataPoints& reference,
+        const Matches& input) {
+
+	int nbr_read_point = input.dists.cols();
+	int nbr_match = input.dists.rows();
+
+	Matrix normals = reference.getDescriptorViewByName("normals");
+
+//	if (normals.rows() < 3)    // Make sure there are normals in DataPoints
+//		return input.dists;
+
+	Vector reading_point(Vector::Zero(3));
+	Vector reference_point(Vector::Zero(3));
+	Vector normal(3);
+
+	Matrix dists(Matrix::Zero(nbr_match, nbr_read_point));
+
+	for(int i = 0; i < nbr_read_point; ++i) {
+		reading_point = reading.features.block(0, i, 3, 1);
+		for(int j = 0; j < nbr_match; ++j) {
+			const int reference_idx = input.ids(j, i);
+			if (reference_idx != Matches::InvalidId) {
+				reference_point = reference.features.block(0, reference_idx, 3, 1);
+				///normal = normals.block(0, reference_idx, 3, 1);
+				normal = normals.col(reference_idx).normalized();
+				// distance_point_to_plan = dot(n, p-q)²
+				dists(j, i) = pow(normal.dot(reading_point-reference_point), 2);
+			}
+		}
+	}
+
+	return dists;
+}
+
 template<typename T>
 typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFilter::robustFiltering(
 	const DataPoints& filteredReading,
@@ -493,9 +534,11 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
   iteration++;
 
 
-  const T k2 = k * k;
+	auto dists = computePointToPlanDistance(filteredReading, filteredReference, input);
+
+	const T k2 = k * k;
 	// e² = squared distance scaled
-  auto e2 = input.dists.array() / (scale * scale);
+	auto e2 = dists.array() / (scale * scale);
 
 	OutlierWeights w, aboveThres, bellowThres;
 	switch (robustFctId) {
