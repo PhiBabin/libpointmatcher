@@ -198,7 +198,8 @@ T OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::optimizeInlierRatio(const 
 		throw ConvergenceError("no outlier to filter");
 			
 	std::sort(tmpSortedDist.begin(), tmpSortedDist.end());
-  std::vector<T> tmpCumSumSortedDist = tmpSortedDist;
+  std::vector<T> tmpCumSumSortedDist;
+  tmpCumSumSortedDist.reserve(points_nbr);
   std::partial_sum(tmpSortedDist.begin(), tmpSortedDist.end(), tmpCumSumSortedDist.begin());
 
 	const int minEl = floor(this->minRatio*points_nbr);
@@ -208,7 +209,7 @@ T OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::optimizeInlierRatio(const 
 	Eigen::Map<LineArray> sortedDist(&tmpCumSumSortedDist[0], points_nbr);
 
 	const LineArray trunkSortedDist = sortedDist.segment(minEl, maxEl-minEl);
-  //const T lowerSum = sortedDist.head(minEl).sum();
+
 	const LineArray ids = LineArray::LinSpaced(trunkSortedDist.rows(), minEl+1, maxEl);
 	const LineArray ratio = ids / points_nbr; // ratio for each of element between minEl and maxEl
 	const LineArray deno = ratio.pow(this->lambda); // f^λ
@@ -217,8 +218,6 @@ T OutlierFiltersImpl<T>::VarTrimmedDistOutlierFilter::optimizeInlierRatio(const 
 	int minIndex(0);// = FRMS.minCoeff();
 	FRMS.minCoeff(&minIndex);
 	const T optRatio = (float)(minIndex + minEl)/ (float)points_nbr;
-	
-	//cout << "Optimized ratio: " << optRatio << endl;
 	
 	return optRatio;
 
@@ -534,11 +533,11 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
   iteration++;
 
 
-	auto dists = computePointToPlanDistance(filteredReading, filteredReference, input);
+  //auto dists = computePointToPlanDistance(filteredReading, filteredReference, input);
 
 	const T k2 = k * k;
 	// e² = squared distance scaled
-	auto e2 = dists.array() / (scale * scale);
+	auto e2 = input.dists.array() / (scale * scale);
 
 	OutlierWeights w, aboveThres, bellowThres;
 	switch (robustFctId) {

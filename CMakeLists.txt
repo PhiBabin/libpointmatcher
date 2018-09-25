@@ -263,6 +263,7 @@ else ()
 endif ()
 
 
+set (CMAKE_CXX_FLAGS "-Wno-int-in-bool-context -Wmisleading-indentation ${CMAKE_CXX_FLAGS}")
 # SOURCE
 
 # Pointmatcher lib and install
