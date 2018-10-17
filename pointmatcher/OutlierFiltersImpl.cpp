@@ -411,15 +411,35 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::RobustOutlierFilter(const std::strin
     squaredApproximation(pow(Parametrizable::get<T>("approximation"), 2)),
     scaleEstimator(Parametrizable::get<string>("scaleEstimator")),
     nbIterationForScale(Parametrizable::get<int>("nbIterationForScale")),
+	distanceType(Parametrizable::get<string>("distanceType")),
     robustFctId(-1),
     iteration(1),
-    scale(0.0)
+    scale(0.0),
+	berg_target_scale(0)
 {
-  const set<string> validScaleEstimator = {"none", "mad", "berg", "std"};
-  if (validScaleEstimator.find(scaleEstimator) == validScaleEstimator.end()) {
-    throw InvalidParameter("Invalid scale estimator name.");
-  }
-  resolveEstimatorName();
+	const set<string> validScaleEstimator = {"none", "mad", "berg", "std"};
+	if (validScaleEstimator.find(scaleEstimator) == validScaleEstimator.end()) {
+		throw InvalidParameter("Invalid scale estimator name.");
+	}
+	const set<string> validDistanceType = {"point2point", "point2plane"};
+	if (validDistanceType.find(distanceType) == validDistanceType.end()) {
+		throw InvalidParameter("Invalid distance type name.");
+	}
+
+	resolveEstimatorName();
+
+	if (scaleEstimator == "berg") {
+		berg_target_scale = tuning;
+
+		// See \cite{Bergstrom2014}
+		if (robustFctId == RobustFctId::Cauchy) {
+			tuning = 4.3040;
+		} else if (robustFctId == RobustFctId::Tukey) {
+			tuning = 7.0589;
+		} else if (robustFctId == RobustFctId::Huber) {
+			tuning = 2.0138;
+		}
+	}
 }
 
 template<typename T>
@@ -460,9 +480,6 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::computePointToPlanDistance(
 
 	Matrix normals = reference.getDescriptorViewByName("normals");
 
-//	if (normals.rows() < 3)    // Make sure there are normals in DataPoints
-//		return input.dists;
-
 	Vector reading_point(Vector::Zero(3));
 	Vector reference_point(Vector::Zero(3));
 	Vector normal(3);
@@ -488,56 +505,42 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::computePointToPlanDistance(
 
 template<typename T>
 typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFilter::robustFiltering(
-	const DataPoints& filteredReading,
-	const DataPoints& filteredReference,
-	const Matches& input) {
+		const DataPoints& filteredReading,
+		const DataPoints& filteredReference,
+		const Matches& input) {
 
-
-  T k = tuning;
-
-	//if (useMad) {
-	// 0.6745 is give the best constant for a gaussian distribution
-	//tuning = sqrt(input.getMedianAbsDeviation()) / 0.6745;
-	//}
 	if (scaleEstimator == "mad") {
 		if (iteration <= nbIterationForScale or nbIterationForScale == 0) {
-      scale = sqrt(input.getMedianAbsDeviation());
+			scale = sqrt(input.getMedianAbsDeviation());
 		}
 	} else if (scaleEstimator == "std") {
-    if (iteration <= nbIterationForScale or nbIterationForScale == 0) {
-      scale = sqrt(input.getStandardDeviation());
-    }
-  } else if (scaleEstimator == "berg") {
+		if (iteration <= nbIterationForScale or nbIterationForScale == 0) {
+			scale = sqrt(input.getStandardDeviation());
+		}
+	} else if (scaleEstimator == "berg") {
 
-    if (robustFctId == RobustFctId::Cauchy) {
-      k = 4.3040;
-    } else if (robustFctId == RobustFctId::Tukey) {
-      k = 7.0589;
-    } else if (robustFctId == RobustFctId::Huber) {
-      k = 2.0138;
-    }
+		if (iteration <= nbIterationForScale or nbIterationForScale == 0) {
+			// The tuning constant is the target scale that we want to reach
+			// It's a bit confusing to use the tuning constant for scaling...
+			if (iteration == 1) {
+				scale = 1.9 * sqrt(input.getDistsQuantile(0.5));
+			} else { // TODO: maybe add it has another parameter or make him a function of the max iteration
+				const T CONVERGENCE_RATE = 0.85;
+				scale = CONVERGENCE_RATE * (scale - berg_target_scale) + berg_target_scale;
+			}
+		}
+	} else {
+		scale = 1.0; // We don't rescale
+	}
+	iteration++;
 
-    if (iteration <= nbIterationForScale or nbIterationForScale == 0) {
-      // The tuning constant is the target scale that we want to reach
-      // It's a bit confusing to use the tuning constant for scaling...
-      if (iteration == 1) {
-        scale = 1.9 * sqrt(input.getDistsQuantile(0.5));
-      } else { // TODO: maybe add it has another parameter or make him a function of the max iteration
-        const T CONVERGENCE_RATE = 0.85;
-        scale = CONVERGENCE_RATE * (scale - tuning) + tuning;
-      }
-    }
-  } else {
-    scale = 1.0; // We don't rescale
-  }
-  iteration++;
+	auto dists = distanceType == "point2point" ? input.dists : computePointToPlanDistance(filteredReading, filteredReference, input);
 
+	// e² = scaled squared distance
+	auto e2 = dists.array() / (scale * scale);
 
-  //auto dists = computePointToPlanDistance(filteredReading, filteredReference, input);
-
+	T k = tuning;
 	const T k2 = k * k;
-	// e² = squared distance scaled
-	auto e2 = input.dists.array() / (scale * scale);
 
 	OutlierWeights w, aboveThres, bellowThres;
 	switch (robustFctId) {
@@ -549,7 +552,7 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 			break;
 		case RobustFctId::SwitchableConstraint: // if e² > k² then 4 * k²/(k + e²)²
 			aboveThres = 4.0 * k2 * ((k + e2).square()).inverse();
-			w = (e2 >= k2).select(aboveThres, 1.0);
+			w = (e2 >= k).select(aboveThres, 1.0);
 			break;
 		case RobustFctId::GM:    // k²/(k + e²)²
 			w = k2*((k + e2).square()).inverse();
@@ -566,17 +569,19 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 			w = e2.sqrt().inverse();
 			break;
 		case RobustFctId::Student: { // ....
-      const T d = 3;
-      auto p = (1 + e2 / k).pow(-(k + d) / 2);
-      w = p * (k + d) * (k + e2).inverse();
-      break;
-    }
+			const T d = 3;
+			auto p = (1 + e2 / k).pow(-(k + d) / 2);
+			w = p * (k + d) * (k + e2).inverse();
+			break;
+		}
 		default:
 			break;
 	}
 
 	// In the minimizer, zero weight are ignored, we want them to be notice by having the smallest value
-	w = (w.array() <= 1e-50).select(1e-50, w);
+	// The value can not be a numeric limit, since they might cause a nan/inf.
+	const double ARBITRARY_SMALL_VALUE = 1e-50;
+	w = (w.array() <=ARBITRARY_SMALL_VALUE).select(ARBITRARY_SMALL_VALUE, w);
 
 
 	if(squaredApproximation != std::numeric_limits<T>::infinity())
