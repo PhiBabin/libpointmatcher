@@ -379,14 +379,17 @@ template struct OutlierFiltersImpl<double>::GenericDescriptorOutlierFilter;
 template<typename T>
 typename OutlierFiltersImpl<T>::RobustOutlierFilter::RobustFctMap
 OutlierFiltersImpl<T>::RobustOutlierFilter::robustFcts = {
-	{"cauchy",  RobustFctId::Cauchy},
-	{"welsch",  RobustFctId::Welsch},
-	{"sc",      RobustFctId::SwitchableConstraint},
-	{"gm",      RobustFctId::GM},
-	{"tukey",   RobustFctId::Tukey},
-	{"huber",   RobustFctId::Huber},
-	{"L1",      RobustFctId::L1},
-	{"student", RobustFctId::Student}
+	{"cauchy",   RobustFctId::Cauchy},
+	{"welsch",   RobustFctId::Welsch},
+	{"sc",       RobustFctId::SwitchableConstraint},
+	{"gm",       RobustFctId::GM},
+	{"tukey",    RobustFctId::Tukey},
+	{"huber",    RobustFctId::Huber},
+	{"Andrew",   RobustFctId::Andrew},
+	{"fair",     RobustFctId::Fair},
+	{"logistic", RobustFctId::Logistic},
+	{"L1",       RobustFctId::L1},
+	{"student",  RobustFctId::Student}
 };
 
 template<typename T>
@@ -568,6 +571,20 @@ typename PointMatcher<T>::OutlierWeights OutlierFiltersImpl<T>::RobustOutlierFil
 			aboveThres = k * (e2.sqrt().inverse());
 			w = (e2 >= k2).select(aboveThres, 1.0);
 			break;
+		case RobustFctId::Andrew: { // if |e| <= πk then sin(e/k)/(e/k)
+			const Array tmp = e2.sqrt() / k;
+			belowThres = tmp.sin() / tmp;
+			w = (e2 >= M_PI*M_PI * k2).select(0, belowThres);
+			break;
+		}
+		case RobustFctId::Fair: // (1 + |e|/k)^(-1)
+			w = (1 + e2.sqrt() / k).inverse();
+			break;
+		case RobustFctId::Logistic: {// tanh(|e|/k) / (|e|/k)
+			const Array tmp = e2.sqrt() / k;
+			w = tmp.tanh() / tmp;
+			break;
+		}
 		case RobustFctId::L1: // 1/|e| = 1/sqrt(e²)
 			w = e2.sqrt().inverse();
 			break;
