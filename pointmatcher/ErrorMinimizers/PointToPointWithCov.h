@@ -2,7 +2,7 @@
 // vim: ts=4:sw=4:noexpandtab
 /*
 
-Copyright (c) 2010--2018,
+Copyright (c) 2010--2012,
 François Pomerleau and Stephane Magnenat, ASL, ETHZ, Switzerland
 You can contact the authors at <f dot pomerleau at gmail dot com> and
 <stephane at magnenat dot net>
@@ -32,45 +32,49 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#pragma once
+
+#ifndef LIBPOINTMATCHER_POINTTOPOINTWITHCOV_H
+#define LIBPOINTMATCHER_POINTTOPOINTWITHCOV_H
 
 #include "PointMatcher.h"
+#include "ErrorMinimizersImpl.h"
 
-#include <string>
-
-//! Subsampling. Cut points with value of a given descriptor above or below a given threshold.
-template<typename T>
-struct CutAtDescriptorThresholdDataPointsFilter: public PointMatcher<T>::DataPointsFilter
+template <typename T>
+struct PointToPointWithCovErrorMinimizer: public PointToPointErrorMinimizer<T>
 {
 	typedef PointMatcherSupport::Parametrizable Parametrizable;
 	typedef PointMatcherSupport::Parametrizable P;
 	typedef Parametrizable::Parameters Parameters;
-	typedef Parametrizable::ParameterDoc ParameterDoc;
 	typedef Parametrizable::ParametersDoc ParametersDoc;
-	typedef Parametrizable::InvalidParameter InvalidParameter;
 	
+	typedef typename PointMatcher<T>::Matrix Matrix;
+	typedef typename PointMatcher<T>::TransformationParameters TransformationParameters;
+	typedef typename PointMatcher<T>::ErrorMinimizer::ErrorElements ErrorElements;
 	typedef typename PointMatcher<T>::DataPoints DataPoints;
-	typedef typename PointMatcher<T>::DataPoints::InvalidField InvalidField;
+	typedef typename PointMatcher<T>::OutlierWeights OutlierWeights;
+	typedef typename PointMatcher<T>::Matches Matches;
+	typedef typename PointMatcher<T>::ErrorMinimizer ErrorMinimizer;
+	typedef typename PointMatcher<T>::Vector Vector;
 	
-  inline static const std::string description()
-  {
-    return "Subsampling. Cut points with value of a given descriptor above or below a given threshold.";
-  }
-  inline static const ParametersDoc availableParameters()
-  {
-    return {
-    	{"descName", "Descriptor name used to cut points", "none"},
-    	{"useLargerThan", "If set to 1 (true), points with values above the 'threshold' will be cut.  If set to 0 (false), points with values below the 'threshold' will be cut.", "1", "0", "1", P::Comp<bool>},
-    	{"threshold", "Value at which to cut.", "0", "-inf", "inf", &P::Comp<T>}
-    };
-  }
-
-  const std::string descName;
-  const bool useLargerThan;
-  const T threshold;
-
-  //! Constructor, uses parameter interface
-  CutAtDescriptorThresholdDataPointsFilter(const Parameters& params = Parameters());
-  virtual DataPoints filter(const DataPoints& input);
-  virtual void inPlaceFilter(DataPoints& cloud);
+	inline static const std::string description()
+	{
+		return "Point-to-point error. Based on SVD decomposition. Based on \\cite{Besl1992Point2Point}. Covariance estimation based on \\cite{Censi2007ICPCovariance}.";
+	}
+	
+	inline static const ParametersDoc availableParameters()
+	{
+		return {
+			{"sensorStdDev", "sensor standard deviation", "0.01", "0.", "inf", &P::Comp<T>}
+		};
+	}
+	
+	const T sensorStdDev;
+	Matrix covMatrix;
+	
+	PointToPointWithCovErrorMinimizer(const Parameters& params = Parameters());
+	virtual TransformationParameters compute(const ErrorElements& mPts);
+	virtual Matrix getCovariance() const;
+	Matrix estimateCovariance(const ErrorElements& mPts, const TransformationParameters& transformation);
 };
+
+#endif //LIBPOINTMATCHER_POINTTOPOINTWITHCOV_H

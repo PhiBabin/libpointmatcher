@@ -39,89 +39,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PointMatcher.h"
 #include "ErrorMinimizers/PointToPlane.h"
 #include "ErrorMinimizers/PointToPlaneWithCov.h"
+#include "ErrorMinimizers/PointToPoint.h"
+#include "ErrorMinimizers/PointToPointWithCov.h"
+#include "ErrorMinimizers/PointToPointSimilarity.h"
+#include "ErrorMinimizers/Identity.h"
 
 template<typename T>
 struct ErrorMinimizersImpl
 {
-	typedef PointMatcherSupport::Parametrizable Parametrizable;
-	typedef PointMatcherSupport::Parametrizable P;
-	typedef Parametrizable::Parameters Parameters;
-	typedef Parametrizable::ParameterDoc ParameterDoc;
-	typedef Parametrizable::ParametersDoc ParametersDoc;
-
-	typedef typename PointMatcher<T>::DataPoints DataPoints;
-	typedef typename PointMatcher<T>::Matches Matches;
-	typedef typename PointMatcher<T>::OutlierWeights OutlierWeights;
-	typedef typename PointMatcher<T>::ErrorMinimizer ErrorMinimizer;
-	typedef typename PointMatcher<T>::ErrorMinimizer::ErrorElements ErrorElements;
-	typedef typename PointMatcher<T>::TransformationParameters TransformationParameters;
-	typedef typename PointMatcher<T>::Vector Vector;
-	typedef typename PointMatcher<T>::Matrix Matrix;
-
-	struct IdentityErrorMinimizer: ErrorMinimizer
-	{
-		inline static const std::string description()
-		{
-			return "Does nothing.";
-		}
-
-		//virtual TransformationParameters compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches);
-		virtual TransformationParameters compute(const ErrorElements& mPts);
-	};
-
-	struct PointToPointErrorMinimizer: ErrorMinimizer
-	{
-		inline static const std::string description()
-		{
-			return "Point-to-point error. Based on SVD decomposition. Per \\cite{Besl1992Point2Point}.";
-		}
-
-		//virtual TransformationParameters compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches);
-		virtual TransformationParameters compute(const ErrorElements& mPts);
-		virtual T getResidualError(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches) const;
-		virtual T getOverlap() const;
-
-		static T computeResidualError(const ErrorElements& mPts);
-	};
-
-	struct PointToPointSimilarityErrorMinimizer: ErrorMinimizer
-	{
-		inline static const std::string description()
-		{
-			return "Point-to-point similarity error (rotation + translation + scale). The scale is the same for all coordinates. Based on SVD decomposition. Per \\cite{Umeyama1991}.";
-		}
-
-		//virtual TransformationParameters compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches);
-		virtual TransformationParameters compute(const ErrorElements& mPts);
-		virtual T getResidualError(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches) const;
-		virtual T getOverlap() const;
-	};
-
-	struct PointToPointWithCovErrorMinimizer: ErrorMinimizer
-	{
-		inline static const std::string description()
-		{
-			return "Point-to-point error. Based on SVD decomposition. Based on \\cite{Besl1992Point2Point}. Covariance estimation based on \\cite{Censi2007ICPCovariance}.";
-		}
-
-		inline static const ParametersDoc availableParameters()
-		{
-			return boost::assign::list_of<ParameterDoc>
-				( "sensorStdDev", "sensor standard deviation", "0.01", "0.", "inf", &P::Comp<T>)
-			;
-		}
-
-		const T sensorStdDev;
-		Matrix covMatrix;
-
-		PointToPointWithCovErrorMinimizer(const Parameters& params = Parameters());
-		//virtual TransformationParameters compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches);
-		virtual TransformationParameters compute(const ErrorElements& mPts);
-		virtual T getResidualError(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches) const;
-		virtual T getOverlap() const;
-		virtual Matrix getCovariance() const;
-		Matrix estimateCovariance(const ErrorElements& mPts, const TransformationParameters& transformation);
-	};
+	typedef ::PointToPlaneErrorMinimizer<T> PointToPlaneErrorMinimizer;
+	typedef ::PointToPlaneWithCovErrorMinimizer<T> PointToPlaneWithCovErrorMinimizer;
+	typedef ::PointToPointErrorMinimizer<T> PointToPointErrorMinimizer;
+	typedef ::PointToPointWithCovErrorMinimizer<T> PointToPointWithCovErrorMinimizer;
+	typedef ::PointToPointSimilarityErrorMinimizer<T> PointToPointSimilarityErrorMinimizer;
+	typedef ::IdentityErrorMinimizer<T> IdentityErrorMinimizer;
 }; // ErrorMinimizersImpl
 
 #endif // __POINTMATCHER_ERRORMINIMIZER_H

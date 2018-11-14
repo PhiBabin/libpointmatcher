@@ -35,10 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "PointMatcher.h"
+#include <array>
 
-//! Systematic sampling, with variation over time
 template<typename T>
-struct FixStepSamplingDataPointsFilter: public PointMatcher<T>::DataPointsFilter
+struct RemoveSensorBiasDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 {
 	typedef PointMatcherSupport::Parametrizable Parametrizable;
 	typedef PointMatcherSupport::Parametrizable P;
@@ -47,33 +47,68 @@ struct FixStepSamplingDataPointsFilter: public PointMatcher<T>::DataPointsFilter
 	typedef Parametrizable::ParametersDoc ParametersDoc;
 	typedef Parametrizable::InvalidParameter InvalidParameter;
 	
-	typedef typename PointMatcher<T>::DataPoints DataPoints;
+	typedef PointMatcher<T> PM;
+	typedef typename PM::DataPoints DataPoints;
+	typedef typename PM::DataPointsFilter DataPointsFilter;
+	typedef typename PM::Matrix Matrix;
+	typedef typename PM::Vector Vector;
+	
+	typedef typename DataPoints::InvalidField InvalidField;
 	
 	inline static const std::string description()
 	{
-		return "Subsampling. This filter reduces the size of the point cloud by only keeping one point over step ones; with step varying in time from startStep to endStep, each iteration getting multiplied by stepMult. If use as prefilter (i.e. before the iterations), only startStep is used.";
+		return "Remove the bias induced by the angle of incidence\n\n"
+			   "Required descriptors: incidenceAngles, observationDirections.\n"
+		       "Produced descritors:  none.\n"
+			   "Altered descriptors:  none.\n"
+			   "Altered features:     points coordinates and number of points.";
 	}
+	
 	inline static const ParametersDoc availableParameters()
 	{
 		return {
-			{"startStep", "initial number of point to skip (initial decimation factor)", "10", "1", "2147483647", &P::Comp<unsigned>},
-			{"endStep", "maximal or minimal number of points to skip (final decimation factor)", "10", "1", "2147483647", &P::Comp<unsigned>},
-			{"stepMult", "multiplication factor to compute the new decimation factor for each iteration", "1", "0.0000001", "inf", &P::Comp<double>}
+			{"sensorType", "Type of the sensor used. Choices: 0=Sick LMS-1xx, 1=Velodyne HDL-32E", "0", "0", "1", &P::Comp < int >},
+			{"angleThreshold", "Threshold at which angle the correction is not applied, in degrees", "88.", "0.", "90.", &P::Comp < T >}
 		};
 	}
 	
-	// number of steps to skip
-	const unsigned startStep;
-	const unsigned endStep;
-	const double stepMult;
-
-protected:
-	double step;
-	
-public:
-	FixStepSamplingDataPointsFilter(const Parameters& params = Parameters());
-	virtual ~FixStepSamplingDataPointsFilter() {};
-	virtual void init();
+	RemoveSensorBiasDataPointsFilter(const Parameters& params = Parameters());
 	virtual DataPoints filter(const DataPoints& input);
 	virtual void inPlaceFilter(DataPoints& cloud);
+
+private:
+	enum SensorType : int { LMS_1XX=0, HDL_32E=1 };
+	struct SensorParameters{
+	private:
+		SensorParameters(T aperture_, T k1_, T k2_): aperture(aperture_), k1(k1_), k2(k2_) {}
+	public:
+		const T aperture;
+		const T k1;
+		const T k2;
+		
+		static const SensorParameters LMS_1XX;
+		static const SensorParameters HDL_32E;
+	};
+	
+	static constexpr T tau = 50e-9; //s - pulse length
+	static constexpr T pulse_intensity = 0.39; //w.m^-2 - pulse intensity
+	static constexpr T lambda_light = 905e-9; //m - wavelength of the laser
+	static constexpr T c = 299792458.0; //m.s^-1 - celerity of light
+	
+	const SensorType sensorType;
+	const T angleThreshold;
+
+	std::array<T,4> getCoefficients(const T depth, const T theta, const T aperture) const;
+	T diffDist(const T depth, const T theta, const T aperture) const;
+	T ratioCurvature(const T depth, const T theta, const T aperture) const;
 };
+
+template<typename T>
+const typename RemoveSensorBiasDataPointsFilter<T>::SensorParameters RemoveSensorBiasDataPointsFilter<T>::SensorParameters::LMS_1XX =
+	RemoveSensorBiasDataPointsFilter<T>::SensorParameters(0.0075049, 6.08040951e+00, 3.17921789e-03 );
+
+template<typename T>
+const typename RemoveSensorBiasDataPointsFilter<T>::SensorParameters RemoveSensorBiasDataPointsFilter<T>::SensorParameters::HDL_32E =
+	RemoveSensorBiasDataPointsFilter<T>::SensorParameters(0.0014835, 1.03211569e+01, 7.07893371e-03);
+
+

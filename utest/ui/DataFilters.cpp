@@ -240,7 +240,7 @@ TEST_F(DataFilterTest, SurfaceNormalDataPointsFilter)
 TEST_F(DataFilterTest, MaxDensityDataPointsFilter)
 {
 	// Ratio has been selected to not affect the points too much
- 	vector<double> ratio = list_of (100) (1000) (5000);
+ 	vector<double> ratio = {100, 1000, 5000};
  
  	for(unsigned i=0; i < ratio.size(); i++)
  	{
@@ -348,8 +348,9 @@ TEST_F(DataFilterTest, OrientNormalsDataPointsFilter)
 			"SurfaceNormalDataPointsFilter");
 	icp.readingDataPointsFilters.push_back(extraDataPointFilter);
 	addFilter("ObservationDirectionDataPointsFilter");
-	addFilter("OrientNormalsDataPointsFilter", map_list_of
-		("towardCenter", toParam(false))
+	addFilter("OrientNormalsDataPointsFilter", {
+		{"towardCenter", toParam(false)}
+	}
 	);
 	validate2dTransformation();
 	validate3dTransformation();
@@ -358,8 +359,8 @@ TEST_F(DataFilterTest, OrientNormalsDataPointsFilter)
 
 TEST_F(DataFilterTest, RandomSamplingDataPointsFilter)
 {
-	vector<double> prob = list_of (0.80) (0.85) (0.90) (0.95);
-	for(unsigned i=0; i<prob.size(); i++)
+	vector<double> prob = {0.80, 0.85, 0.90, 0.95};
+	for(unsigned i = 0; i < prob.size(); i++)
 	{
 		// Try to avoid to low value for the reduction to avoid under sampling
 		params = PM::Parameters();
@@ -374,7 +375,7 @@ TEST_F(DataFilterTest, RandomSamplingDataPointsFilter)
 
 TEST_F(DataFilterTest, FixStepSamplingDataPointsFilter)
 {
-	vector<unsigned> steps = list_of (1) (2) (3);
+	vector<unsigned> steps = {1, 2, 3};
 	for(unsigned i=0; i<steps.size(); i++)
 	{
 		// Try to avoid too low value for the reduction to avoid under sampling
@@ -628,8 +629,8 @@ TEST_F(DataFilterTest, VoxelGridDataPointsFilter)
 	EXPECT_EQ(cloud.getTimeDim(), filteredCloud.getTimeDim());
 
 	// Test with ICP
-	vector<bool> useCentroid = list_of(false)(true);
-	vector<bool> averageExistingDescriptors = list_of(false)(true);
+	vector<bool> useCentroid = {false, true};
+	vector<bool> averageExistingDescriptors = {false, true};
 	for (unsigned i = 0 ; i < useCentroid.size() ; i++) 
 	{
 		for (unsigned j = 0; j < averageExistingDescriptors.size(); j++) 
@@ -668,7 +669,7 @@ TEST_F(DataFilterTest, VoxelGridDataPointsFilter)
 TEST_F(DataFilterTest, CutAtDescriptorThresholdDataPointsFilter)
 {
 	// Copied from density ratio above
-	vector<double> thresholds = list_of (100) (1000) (5000);
+	vector<double> thresholds = {100, 1000, 5000};
 
 	DP ref3Ddensities = ref3D;
 	// Adding descriptor "densities"
@@ -814,4 +815,77 @@ TEST_F(DataFilterTest, SameFilterInstanceTwice)
 	
 	icp.referenceDataPointsFilters.push_back(df);
 	icp.readingDataPointsFilters.push_back(df);
+}
+
+TEST_F(DataFilterTest, RemoveSensorBiasDataPointsFilter)
+{
+	const size_t nbPts = 6;
+	const double expectedErrors_LMS1xx[6] = {0., -0.0015156, -0.059276,
+						 0., -0.002311, -0.163689};
+	const double expectedErrors_HDL32E[6]  = {0., -0.002945, -0.075866,
+						  0., -0.002998,-0.082777 };
+	
+	PM::Matrix points = (PM::Matrix(3,6) << 1, 1, 1, 5, 5, 5,
+		0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0).finished();
+	DP::Labels pointsLabels;
+	pointsLabels.push_back(DP::Label("x", 1));
+	pointsLabels.push_back(DP::Label("y", 1));
+	pointsLabels.push_back(DP::Label("z", 1));
+	pointsLabels.push_back(DP::Label("pad", 1));
+	
+	PM::Matrix desc = (PM::Matrix(4,6) << 0., 0.7854, 1.4835, 0., 0.7854, 1.4835, //0,45,85 degrees
+		-1, -1, -1, -5, -5, -5,
+		0,  0,  0,  0,  0,  0, // observation : point to sensor
+		0,  0,  0,  0,  0,  0).finished();
+	
+	PM::Matrix desc2 = (PM::Matrix(4,6) << 0., 0.7854, std::nanf(""), 0., 0.7854, M_PI_2, //0,45,90 degrees
+		-1, -1, -1, -5, -5, -5,
+		0,  0,  0,  0,  0,  0, // observation : point to sensor
+		0,  0,  0,  0,  0,  0).finished();
+	DP::Labels descLabels;
+	descLabels.push_back(DP::Label("incidenceAngles", 1));
+	descLabels.push_back(DP::Label("observationDirections", 3));
+	
+	PM::Int64Matrix randTimes = PM::Int64Matrix::Random(2, nbPts);
+	DP::Labels timeLabels;
+	timeLabels.push_back(DP::Label("dummyTime", 2));
+	
+	// Construct the point cloud from the generated matrices
+	DP pointCloud = DP(points, pointsLabels, desc, descLabels, randTimes, timeLabels);
+	
+	
+	PM::Parameters parameters;
+	parameters["sensorType"] = toParam(0); //LMS_1xx
+	std::shared_ptr<PM::DataPointsFilter> removeSensorBiasFilter = PM::get().DataPointsFilterRegistrar.create("RemoveSensorBiasDataPointsFilter", parameters);
+	DP resultCloud = removeSensorBiasFilter->filter(pointCloud);
+	EXPECT_EQ(pointCloud.getNbPoints(), resultCloud.getNbPoints());
+	
+	for(std::size_t i = 0; i< nbPts; ++i)
+	{
+		const double error = pointCloud.features.col(i).norm() - resultCloud.features.col(i).norm();
+		EXPECT_NEAR(expectedErrors_LMS1xx[i], error, 1e-3); // below mm
+	}
+	
+	parameters["sensorType"] = toParam(1); //HDL32E
+	removeSensorBiasFilter = PM::get().DataPointsFilterRegistrar.create("RemoveSensorBiasDataPointsFilter", parameters);
+	resultCloud = removeSensorBiasFilter->filter(pointCloud);
+	
+	for(std::size_t i = 0; i< nbPts; ++i)
+	{
+		const double error = pointCloud.features.col(i).norm() - resultCloud.features.col(i).norm();
+		EXPECT_NEAR(expectedErrors_HDL32E[i], error, 1e-4); // below mm
+	}
+
+
+	//test points rejection
+	pointCloud = DP(points, pointsLabels, desc2, descLabels, randTimes, timeLabels);
+
+	parameters["sensorType"] = toParam(0); //LMS_1xx
+	parameters["angleThreshold"] = toParam(30.);
+	removeSensorBiasFilter = PM::get().DataPointsFilterRegistrar.create("RemoveSensorBiasDataPointsFilter", parameters);
+	resultCloud = removeSensorBiasFilter->filter(pointCloud);	
+
+	//four points should have been rejected
+	EXPECT_EQ(pointCloud.getNbPoints()-4, resultCloud.getNbPoints());
 }

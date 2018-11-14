@@ -2,7 +2,7 @@
 // vim: ts=4:sw=4:noexpandtab
 /*
 
-Copyright (c) 2010--2018,
+Copyright (c) 2010--2012,
 François Pomerleau and Stephane Magnenat, ASL, ETHZ, Switzerland
 You can contact the authors at <f dot pomerleau at gmail dot com> and
 <stephane at magnenat dot net>
@@ -32,45 +32,25 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#pragma once
+
+#ifndef LIBPOINTMATCHER_IDENTITY_H
+#define LIBPOINTMATCHER_IDENTITY_H
 
 #include "PointMatcher.h"
 
-#include <string>
-
-//! Subsampling. Cut points with value of a given descriptor above or below a given threshold.
-template<typename T>
-struct CutAtDescriptorThresholdDataPointsFilter: public PointMatcher<T>::DataPointsFilter
+template <typename T>
+struct IdentityErrorMinimizer: PointMatcher<T>::ErrorMinimizer
 {
-	typedef PointMatcherSupport::Parametrizable Parametrizable;
-	typedef PointMatcherSupport::Parametrizable P;
-	typedef Parametrizable::Parameters Parameters;
-	typedef Parametrizable::ParameterDoc ParameterDoc;
-	typedef Parametrizable::ParametersDoc ParametersDoc;
-	typedef Parametrizable::InvalidParameter InvalidParameter;
+	typedef typename PointMatcher<T>::TransformationParameters TransformationParameters;
+	typedef typename PointMatcher<T>::ErrorMinimizer::ErrorElements ErrorElements;
 	
-	typedef typename PointMatcher<T>::DataPoints DataPoints;
-	typedef typename PointMatcher<T>::DataPoints::InvalidField InvalidField;
+	inline static const std::string description()
+	{
+		return "Does nothing.";
+	}
 	
-  inline static const std::string description()
-  {
-    return "Subsampling. Cut points with value of a given descriptor above or below a given threshold.";
-  }
-  inline static const ParametersDoc availableParameters()
-  {
-    return {
-    	{"descName", "Descriptor name used to cut points", "none"},
-    	{"useLargerThan", "If set to 1 (true), points with values above the 'threshold' will be cut.  If set to 0 (false), points with values below the 'threshold' will be cut.", "1", "0", "1", P::Comp<bool>},
-    	{"threshold", "Value at which to cut.", "0", "-inf", "inf", &P::Comp<T>}
-    };
-  }
-
-  const std::string descName;
-  const bool useLargerThan;
-  const T threshold;
-
-  //! Constructor, uses parameter interface
-  CutAtDescriptorThresholdDataPointsFilter(const Parameters& params = Parameters());
-  virtual DataPoints filter(const DataPoints& input);
-  virtual void inPlaceFilter(DataPoints& cloud);
+	//virtual TransformationParameters compute(const DataPoints& filteredReading, const DataPoints& filteredReference, const OutlierWeights& outlierWeights, const Matches& matches);
+	virtual TransformationParameters compute(const ErrorElements& mPts);
 };
+
+#endif //LIBPOINTMATCHER_IDENTITY_H
