@@ -385,7 +385,7 @@ OutlierFiltersImpl<T>::RobustOutlierFilter::robustFcts = {
 	{"gm",       RobustFctId::GM},
 	{"tukey",    RobustFctId::Tukey},
 	{"huber",    RobustFctId::Huber},
-	{"Andrew",   RobustFctId::Andrew},
+	{"andrew",   RobustFctId::Andrew},
 	{"fair",     RobustFctId::Fair},
 	{"logistic", RobustFctId::Logistic},
 	{"L1",       RobustFctId::L1},
