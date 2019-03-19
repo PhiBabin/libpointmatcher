@@ -144,7 +144,7 @@ T PointToPlaneWithPenaltiesErrorMinimizer<T>::getResidualError(
 	// HACK FSR 2019
 	T penalitiesErr = 0.0;
 	for (const Penalty& p: penalties) {
-		Vector e = T_refMean_iter.topRightCorner(3, 1) - std::get<0>(p).topRightCorner(3, 1);
+		Vector e = (T_refMean_iter * std::get<2>(p).col(3)).topRightCorner(3, 1) - std::get<0>(p).topRightCorner(3, 1);
 		penalitiesErr += e.transpose() * std::get<1>(p).transpose() * e;
 	}
 
