@@ -70,9 +70,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 //! version of the Pointmatcher library as string
-#define POINTMATCHER_VERSION "1.3.0"
+#define POINTMATCHER_VERSION "1.3.1"
 //! version of the Pointmatcher library as an int
-#define POINTMATCHER_VERSION_INT 10300
+#define POINTMATCHER_VERSION_INT 10301
 
 //! Functions and classes that are not dependant on scalar type are defined in this namespace
 namespace PointMatcherSupport
@@ -661,10 +661,13 @@ struct PointMatcher
 		void loadFromYaml(std::istream& in);
 		unsigned getPrefilteredReadingPtsCount() const;
 		unsigned getPrefilteredReferencePtsCount() const;
+
+		bool getMaxNumIterationsReached() const;
 		
 	protected:
 		unsigned prefilteredReadingPtsCount; //!< remaining number of points after prefiltering but before the iterative process
 		unsigned prefilteredReferencePtsCount; //!< remaining number of points after prefiltering but before the iterative process
+		bool maxNumIterationsReached; //!< store if we reached the maximum number of iterations last time compute was called
 
 		ICPChainBase();
 		

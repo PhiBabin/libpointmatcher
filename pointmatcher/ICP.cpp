@@ -64,7 +64,8 @@ InvalidModuleType::InvalidModuleType(const std::string& reason):
 template<typename T>
 PointMatcher<T>::ICPChainBase::ICPChainBase():
 	prefilteredReadingPtsCount(0),
-	prefilteredReferencePtsCount(0)
+	prefilteredReferencePtsCount(0),
+	maxNumIterationsReached(false)
 {}
 
 //! virtual desctructor
@@ -177,6 +178,13 @@ template<typename T>
 unsigned PointMatcher<T>::ICPChainBase::getPrefilteredReferencePtsCount() const
 {
 	return prefilteredReferencePtsCount;
+}
+
+//! Return the flag that informs if we reached the maximum number of iterations during the last iterative process
+template<typename T>
+bool PointMatcher<T>::ICPChainBase::getMaxNumIterationsReached() const
+{
+	return maxNumIterationsReached;
 }
 
 //! Instantiate modules if their names are in the YAML file
@@ -312,6 +320,16 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 	const TransformationParameters& T_refIn_refMean,
 	const TransformationParameters& T_refIn_dataIn)
 {
+	const int dim(reference.features.rows());
+
+	if (T_refIn_dataIn.cols() != T_refIn_dataIn.rows()) {
+		throw runtime_error("The initial transformation matrix must be squared.");
+	}
+	if (dim != T_refIn_dataIn.cols()) {
+		throw runtime_error("The shape of initial transformation matrix must be NxN. "
+											  "Where N is the number of rows in the read/reference scans.");
+	}
+
 	timer t; // Print how long take the algo
 	
 	// Apply readings filters
@@ -321,7 +339,7 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 	this->readingDataPointsFilters.init();
 	this->readingDataPointsFilters.apply(reading);
 	readingFiltered = reading;
-	
+
 	// Reajust reading position: 
 	// from here reading is express in frame <refMean>
 	TransformationParameters 
@@ -333,10 +351,10 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 	
 	// Since reading and reference are express in <refMean>
 	// the frame <refMean> is equivalent to the frame <iter(0)>
-	const int dim(reference.features.rows());
 	TransformationParameters T_iter = Matrix::Identity(dim, dim);
 	
 	bool iterate(true);
+	this->maxNumIterationsReached = false;
 	this->transformationCheckers.init(T_iter, iterate);
 
 	size_t iterationCount(0);
@@ -398,8 +416,15 @@ typename PointMatcher<T>::TransformationParameters PointMatcher<T>::ICP::compute
 		//	stepReading, reference, outlierWeights, matches);
 		
 		// in test
-		
-		this->transformationCheckers.check(T_iter, iterate);
+		try
+		{
+			this->transformationCheckers.check(T_iter, iterate);
+		}
+		catch(const typename TransformationCheckersImpl<T>::CounterTransformationChecker::MaxNumIterationsReached & e)
+		{
+			iterate = false;
+			this->maxNumIterationsReached = true;
+		}
 	
 		++iterationCount;
 	}
